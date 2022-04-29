@@ -8,6 +8,105 @@ Created on Thu Apr 28 18:10:31 2022
 from os import chdir
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 
-chdir('C:/Users/Aakas/Documents/School/Oster_lab/programs')
+# chdir('C:/Users/Aakas/Documents/School/Oster_lab/programs')
+chdir('C:/Users/Aakas/Documents/School/Oster_lab/')
+
+
+def load_data():
+    """
+    Loads in seb data alongside age dates from our lab
+    
+    Returns:
+        Pandas dataframe containing Seb's MAW 3_5 d18O run
+
+        Pandas dataframe containing our MAW 3_5 runs from various ranges
+    """
+    seb_raw_data = pd.read_excel('external_excel_sheets/MAW-3_record_all.xlsx',
+                                 sheet_name='MAW-3_5',
+                                 skiprows=3,
+                                 na_values=['MAX d18O', 'MIN d18O'],
+                                 usecols='C:E, I:J, Q:R',
+                                 names=['ID', 'dist_mm', 'top_dist_mm',
+                                        'd13C', 'd18O', 'd13C_stdev',
+                                        'd18O_stdev'])
+    data_1_120 = pd.read_excel('internal_excel_sheets/d18O_d18C_data' +
+                               '/MAW_5-3_1-120.xlsx',
+                               usecols='B, D:H',
+                               names=['ID', 'mass_mg', 'd13C_im',
+                                      'stdev_d13C_im',
+                                      'd18O_im', 'stdev_d18O_im'])
+
+    return seb_raw_data, data_1_120
+
+
+def join_to_data(seb_raw_data, in_between_run):
+    """
+    Does the annoying job of binding to the existing d18O, d13C, stedv columns
+    of the Seb datasheet from an existing in-between run
+    """
+    bad_cols = ~pd.to_numeric(seb_1_120.ID, errors='coerce').isna()
+
+    num_in_bet = in_between_run[bad_cols].drop(['mass_mg'], axis=1)
+    num_in_bet.ID = num_in_bet.ID.astype(float)
+    num_in_bet.reset_index(inplace=True)
+
+    final_seb = seb_raw_data.merge(num_in_bet, on='ID', how='left')
+
+    problem_cols = ['d13C_im', 'd18O_im', 'stdev_d13C_im', 'stdev_d18O_im']
+    good_cols = ['d13C', 'd18O', 'd13C_stdev', 'd18O_stdev']
+
+    for g_col, p_col in zip(good_cols, problem_cols):
+        final_seb[g_col] = final_seb[[g_col, p_col]].sum(axis=1)
+        final_seb[g_col].replace(0, np.nan, inplace=True)
+        final_seb.drop([p_col], inplace=True, axis=1)
+
+    return final_seb
+
+
+def bind_rows(seb_raw_data, in_between_runs):
+    """
+    Fixes the jankyness of seb's data, merges in tht good data
+
+    Returns:
+        final_seb:
+            Merged seb data with new points
+        seb_neat_data:
+            Seb's data with the annoying repeated rows removed
+    """
+    seb_raw_data.drop_duplicates('ID', inplace=True)
+    seb_raw_data.reset_index(inplace=True)
+    seb_raw_data.drop(['index'], inplace=True, axis=1)
+
+    final_seb = join_to_data(seb_raw_data, seb_1_120)
+
+    return final_seb, seb_raw_data
+
+
+def plot_comp_data(new_seb_data, old_seb_data, data_range, data='d18O'):
+    """
+    Line plots of depth vs. d18O/ d13C.
+    Speficically to compare old/new results
+    """
+    new_seb_data_plot = new_seb_data[data_range[0]:data_range[1]]
+    old_seb_data_plot = old_seb_data[data_range[0]:data_range[1]]
+    plt.figure(1)
+    plt.scatter(new_seb_data_plot['dist_mm'], new_seb_data_plot[data],
+                s=50, label = 'New Data')
+    plt.scatter(old_seb_data_plot['dist_mm'], old_seb_data_plot[data],
+                label = 'Old Data')
+    plt.xlabel('Distance from top (mm)')
+    plt.ylabel(data + ' value')
+    plt.title('Variation of ' + data + ' with Sample Depth')
+    plt.legend(title='Data source: ', loc='best')
+    plt.grid()
+
+
+if __name__ == '__main__':
+    seb_raw_data, seb_1_120 = load_data()
+    final_seb, seb_neat_data = bind_rows(seb_raw_data, seb_1_120)
+
+    plot_comp_data(final_seb, seb_neat_data, (0, 120))
+    plot_comp_data(final_seb, seb_neat_data, (0, 120), 'd13C')
