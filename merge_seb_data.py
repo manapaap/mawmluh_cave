@@ -9,6 +9,7 @@ from os import chdir
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from copy import deepcopy
 
 
 # chdir('C:/Users/Aakas/Documents/School/Oster_lab/programs')
@@ -18,7 +19,7 @@ chdir('C:/Users/Aakas/Documents/School/Oster_lab/')
 def load_data():
     """
     Loads in seb data alongside age dates from our lab
-    
+
     Returns:
         Pandas dataframe containing Seb's MAW 3_5 d18O run
 
@@ -38,8 +39,14 @@ def load_data():
                                names=['ID', 'mass_mg', 'd13C_im',
                                       'stdev_d13C_im',
                                       'd18O_im', 'stdev_d18O_im'])
+    data_120_200 = pd.read_excel('internal_excel_sheets/d18O_d18C_data' +
+                                 '/MAW_5-3_120-200.xlsx',
+                                 usecols='B, D:H',
+                                 names=['ID', 'mass_mg', 'd13C_im',
+                                        'stdev_d13C_im',
+                                        'd18O_im', 'stdev_d18O_im'])
 
-    return seb_raw_data, data_1_120
+    return seb_raw_data, [data_1_120, data_120_200]
 
 
 def join_to_data(seb_raw_data, in_between_run):
@@ -47,7 +54,7 @@ def join_to_data(seb_raw_data, in_between_run):
     Does the annoying job of binding to the existing d18O, d13C, stedv columns
     of the Seb datasheet from an existing in-between run
     """
-    bad_cols = ~pd.to_numeric(seb_1_120.ID, errors='coerce').isna()
+    bad_cols = ~pd.to_numeric(in_between_run.ID, errors='coerce').isna()
 
     num_in_bet = in_between_run[bad_cols].drop(['mass_mg'], axis=1)
     num_in_bet.ID = num_in_bet.ID.astype(float)
@@ -79,24 +86,27 @@ def bind_rows(seb_raw_data, in_between_runs):
     seb_raw_data.drop_duplicates('ID', inplace=True)
     seb_raw_data.reset_index(inplace=True)
     seb_raw_data.drop(['index'], inplace=True, axis=1)
+    seb_raw_data.dropna(how='all', inplace=True)
 
-    final_seb = join_to_data(seb_raw_data, seb_1_120)
+    final_seb = deepcopy(seb_raw_data)
+    for run in in_between_runs:
+        final_seb = join_to_data(final_seb, run)
 
     return final_seb, seb_raw_data
 
 
-def plot_comp_data(new_seb_data, old_seb_data, data_range, data='d18O'):
+def plot_comp_data(new_seb_data, old_seb_data, data_range, data='d18O', fig=1):
     """
     Line plots of depth vs. d18O/ d13C.
     Speficically to compare old/new results
     """
     new_seb_data_plot = new_seb_data[data_range[0]:data_range[1]]
     old_seb_data_plot = old_seb_data[data_range[0]:data_range[1]]
-    plt.figure(1)
+    plt.figure(fig)
     plt.scatter(new_seb_data_plot['dist_mm'], new_seb_data_plot[data],
-                s=50, label = 'New Data')
+                s=50, label='New Data')
     plt.scatter(old_seb_data_plot['dist_mm'], old_seb_data_plot[data],
-                label = 'Old Data')
+                label='Old Data')
     plt.xlabel('Distance from top (mm)')
     plt.ylabel(data + ' value')
     plt.title('Variation of ' + data + ' with Sample Depth')
@@ -105,8 +115,8 @@ def plot_comp_data(new_seb_data, old_seb_data, data_range, data='d18O'):
 
 
 if __name__ == '__main__':
-    seb_raw_data, seb_1_120 = load_data()
-    final_seb, seb_neat_data = bind_rows(seb_raw_data, seb_1_120)
+    seb_raw_data, in_bet_data = load_data()
+    final_seb, seb_neat_data = bind_rows(seb_raw_data, in_bet_data)
 
-    plot_comp_data(final_seb, seb_neat_data, (0, 120))
-    plot_comp_data(final_seb, seb_neat_data, (0, 120), 'd13C')
+    plot_comp_data(final_seb, seb_neat_data, (0, 200))
+    plot_comp_data(final_seb, seb_neat_data, (0, 200), 'd13C', fig=2)
