@@ -92,21 +92,49 @@ def bind_rows(seb_raw_data, in_between_runs):
     for run in in_between_runs:
         final_seb = join_to_data(final_seb, run)
 
+    final_seb.drop(['index_x', 'index_y'], inplace=True, axis=1)
+
     return final_seb, seb_raw_data
 
 
-def plot_comp_data(new_seb_data, old_seb_data, data_range, data='d18O', fig=1):
+def plot_comp_data(new_seb_data, old_seb_data, max_val, data='d18O', fig=1):
     """
-    Line plots of depth vs. d18O/ d13C.
+    Dot plots of depth vs. d18O/ d13C.
     Speficically to compare old/new results
     """
-    new_seb_data_plot = new_seb_data[data_range[0]:data_range[1]]
-    old_seb_data_plot = old_seb_data[data_range[0]:data_range[1]]
+    new_seb_data_plot = new_seb_data.loc[lambda df: df['ID'] <= max_val]
+    old_seb_data_plot = old_seb_data.loc[lambda df: df['ID'] <= max_val]
     plt.figure(fig)
+
     plt.scatter(new_seb_data_plot['dist_mm'], new_seb_data_plot[data],
-                s=50, label='New Data')
+                label='New Data')
     plt.scatter(old_seb_data_plot['dist_mm'], old_seb_data_plot[data],
                 label='Old Data')
+    plt.xlabel('Distance from top (mm)')
+    plt.ylabel(data + ' value')
+    plt.title('Variation of ' + data + ' with Sample Depth')
+    plt.legend(title='Data source: ', loc='best')
+    plt.grid()
+
+
+def plot_comp_smooth(new_seb_data, old_seb_data, max_val, data, fig=1):
+    """
+    Smooth line of septh vs d18O/d13C
+    Specifically to compare old/new results
+    """
+    new_seb_data_plot = new_seb_data.loc[lambda df: df['ID'] <= max_val]
+    old_seb_data_plot = old_seb_data.loc[lambda df: df['ID'] <= max_val]
+    # Removing stdev of d18O and d13C as some values have NA from Seb data
+    stdevs = ['d13C_stdev', 'd18O_stdev']
+    new_clean_data = new_seb_data_plot.drop(stdevs, axis=1).dropna()
+    old_clean_data = old_seb_data_plot.drop(stdevs, axis=1).dropna()
+
+    plt.figure(fig)
+    plt.plot(new_clean_data['dist_mm'].dropna(),
+             new_clean_data[data].dropna(),
+             label='New Data')
+    plt.plot(old_clean_data['dist_mm'], old_clean_data[data],
+             label='Old Data')
     plt.xlabel('Distance from top (mm)')
     plt.ylabel(data + ' value')
     plt.title('Variation of ' + data + ' with Sample Depth')
@@ -118,5 +146,8 @@ if __name__ == '__main__':
     seb_raw_data, in_bet_data = load_data()
     final_seb, seb_neat_data = bind_rows(seb_raw_data, in_bet_data)
 
-    plot_comp_data(final_seb, seb_neat_data, (0, 200))
-    plot_comp_data(final_seb, seb_neat_data, (0, 200), 'd13C', fig=2)
+    # plot_comp_data(final_seb, seb_neat_data, 200)
+    # plot_comp_data(final_seb, seb_neat_data, 200, 'd13C', fig=2)
+
+    plot_comp_smooth(final_seb, seb_neat_data, 200, 'd18O')
+    plot_comp_smooth(final_seb, seb_neat_data, 200, 'd13C', fig=2)
