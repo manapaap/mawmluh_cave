@@ -39,7 +39,7 @@ def intermediate_data_load(stal_segment):
         im_runs[num] = load_settings('internal_excel_sheets/d18O_d18C_data/' +
                                      stal_segment + '/' + run)
     im_runs = pd.concat(im_runs)
-    return im_runs.reset_index()
+    return im_runs.reset_index(drop=True)
 
 
 def load_data():
@@ -64,6 +64,24 @@ def load_data():
     return seb_raw_data, new_runs
 
 
+def iterative_merge(final_seb, row_one, row_two):
+    """
+    Does an annoying merge that combines the newly bound data from our lab
+    to Seb's existing data allowing for NaN to be summed but not removing
+    0.0 values
+    """
+    for val_one, val_two, num in zip(final_seb[row_one],
+                                     final_seb[row_two],
+                                     range(final_seb['ID'].size)):
+        if not(np.isnan(val_one)):
+            continue
+        elif np.isnan(val_one) and np.isnan(val_two):
+            continue
+        elif np.isnan(val_one) and not(np.isnan(val_two)):
+            final_seb[row_one][num] = val_two
+    return final_seb
+
+
 def join_to_data(seb_raw_data, in_between_run):
     """
     Does the annoying job of binding to the existing d18O, d13C, stedv columns
@@ -73,7 +91,7 @@ def join_to_data(seb_raw_data, in_between_run):
 
     num_in_bet = in_between_run[bad_cols].drop(['mass_mg'], axis=1)
     num_in_bet.ID = num_in_bet.ID.astype(int)
-    num_in_bet.reset_index(inplace=True)
+    num_in_bet.reset_index(inplace=True, drop=True)
 
     final_seb = seb_raw_data.merge(num_in_bet, on='ID', how='left')
 
@@ -81,8 +99,7 @@ def join_to_data(seb_raw_data, in_between_run):
     good_cols = ['d13C', 'd18O', 'd13C_stdev', 'd18O_stdev']
 
     for g_col, p_col in zip(good_cols, problem_cols):
-        final_seb[g_col] = final_seb[[g_col, p_col]].sum(axis=1)
-        final_seb[g_col].replace(0, np.nan, inplace=True)
+        final_seb = iterative_merge(final_seb, g_col, p_col)
         final_seb.drop([p_col], inplace=True, axis=1)
 
     return final_seb
@@ -105,8 +122,6 @@ def bind_rows(seb_raw_data, in_between_runs):
 
     final_seb = deepcopy(seb_raw_data)
     final_seb = join_to_data(final_seb, in_between_runs)
-
-    final_seb.drop(['index'], inplace=True, axis=1)
 
     return final_seb, seb_raw_data
 
