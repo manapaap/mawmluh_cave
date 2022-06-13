@@ -5,7 +5,7 @@ Created on Thu Apr 28 18:10:31 2022
 @author: Aakas
 """
 
-from os import chdir
+from os import chdir, listdir
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,7 +13,33 @@ from copy import deepcopy
 
 
 # chdir('C:/Users/Aakas/Documents/School/Oster_lab/programs')
-chdir('C:/Users/Aakas/Documents/School/Oster_lab/')
+lab_files = 'C:/Users/Aakas/Documents/School/Oster_lab/'
+chdir(lab_files)
+
+
+def load_settings(filepath):
+    """
+    Loads the dataframe with the specific useful settings
+    """
+    df = pd.read_excel(filepath,
+                       usecols='B, D:H',
+                       names=['ID', 'mass_mg', 'd13C_im',
+                              'stdev_d13C_im',
+                              'd18O_im', 'stdev_d18O_im'])
+    return df
+
+
+def intermediate_data_load(stal_segment):
+    """
+    Loads the intermediate runs for a given stalagmite segment and
+    returns a single Pandas dataframe
+    """
+    im_runs = listdir('internal_excel_sheets/d18O_d18C_data/' + stal_segment)
+    for run, num in zip(im_runs, range(len(im_runs))):
+        im_runs[num] = load_settings('internal_excel_sheets/d18O_d18C_data/' +
+                                     stal_segment + '/' + run)
+    im_runs = pd.concat(im_runs)
+    return im_runs.reset_index()
 
 
 def load_data():
@@ -25,7 +51,6 @@ def load_data():
 
         Pandas dataframe containing our MAW 3_5 runs from various ranges
     """
-    new_runs = []
     seb_raw_data = pd.read_excel('external_excel_sheets/MAW-3_record_all.xlsx',
                                  sheet_name='MAW-3_5',
                                  skiprows=3,
@@ -34,42 +59,7 @@ def load_data():
                                  names=['ID', 'dist_mm', 'top_dist_mm',
                                         'd13C', 'd18O', 'd13C_stdev',
                                         'd18O_stdev'])
-    data_1_120 = pd.read_excel('internal_excel_sheets/d18O_d18C_data' +
-                               '/MAW_5-3_1-120.xlsx',
-                               usecols='B, D:H',
-                               names=['ID', 'mass_mg', 'd13C_im',
-                                      'stdev_d13C_im',
-                                      'd18O_im', 'stdev_d18O_im'])
-    new_runs.append(data_1_120)
-    data_120_200 = pd.read_excel('internal_excel_sheets/d18O_d18C_data' +
-                                 '/MAW_5-3_120-200.xlsx',
-                                 usecols='B, D:H',
-                                 names=['ID', 'mass_mg', 'd13C_im',
-                                        'stdev_d13C_im',
-                                        'd18O_im', 'stdev_d18O_im'])
-    new_runs.append(data_120_200)
-    data_200_300 = pd.read_excel('internal_excel_sheets/d18O_d18C_data' +
-                                 '/MAW_5-3_200-300.xlsx',
-                                 usecols='B, D:H',
-                                 names=['ID', 'mass_mg', 'd13C_im',
-                                        'stdev_d13C_im',
-                                        'd18O_im', 'stdev_d18O_im'])
-    new_runs.append(data_200_300)
-    data_300_400 = pd.read_excel('internal_excel_sheets/d18O_d18C_data' +
-                                 '/MAW_5-3_300-400.xlsx',
-                                 usecols='B, D:H',
-                                 names=['ID', 'mass_mg', 'd13C_im',
-                                        'stdev_d13C_im',
-                                        'd18O_im', 'stdev_d18O_im'])
-    new_runs.append(data_300_400)
-    data_400_500 = pd.read_excel('internal_excel_sheets/d18O_d18C_data' +
-                                 '/MAW_5-3_400-500.xlsx',
-                                 usecols='B, D:H',
-                                 names=['ID', 'mass_mg', 'd13C_im',
-                                        'stdev_d13C_im',
-                                        'd18O_im', 'stdev_d18O_im'])
-    new_runs.append(data_400_500)
-    new_runs = pd.concat(new_runs)
+    new_runs = intermediate_data_load('MAW-3_5')
 
     return seb_raw_data, new_runs
 
@@ -170,8 +160,8 @@ if __name__ == '__main__':
     seb_raw_data, in_bet_data = load_data()
     final_seb, seb_neat_data = bind_rows(seb_raw_data, in_bet_data)
 
-    plot_comp_smooth(final_seb, seb_neat_data, 500, 'd18O')
-    plot_comp_smooth(final_seb, seb_neat_data, 500, 'd13C', fig=2)
+    plot_comp_smooth(final_seb, seb_neat_data, 722, 'd18O')
+    plot_comp_smooth(final_seb, seb_neat_data, 722, 'd13C', fig=2)
 
     final_seb.to_csv('internal_excel_sheets/filled_seb_runs/' +
                      'MAW-3_5-filled.csv')
