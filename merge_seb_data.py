@@ -12,7 +12,7 @@ import numpy as np
 from copy import deepcopy
 
 
-# chdir('C:/Users/Aakas/Documents/School/Oster_lab/programs')
+# 'C:/Users/Aakas/Documents/School/Oster_lab/programs'
 lab_files = 'C:/Users/Aakas/Documents/School/Oster_lab/'
 chdir(lab_files)
 
@@ -51,17 +51,103 @@ def load_data():
 
         Pandas dataframe containing our MAW 3_5 runs from various ranges
     """
-    seb_raw_data = pd.read_excel('external_excel_sheets/MAW-3_record_all.xlsx',
-                                 sheet_name='MAW-3_5',
-                                 skiprows=3,
-                                 na_values=['MAX d18O', 'MIN d18O'],
-                                 usecols='C:E, I:J, Q:R',
-                                 names=['ID', 'dist_mm', 'top_dist_mm',
-                                        'd13C', 'd18O', 'd13C_stdev',
-                                        'd18O_stdev'])
-    new_runs = intermediate_data_load('MAW-3_5')
+    full_runs = []
+    seb_raw_data_3_4 = pd.read_excel('external_excel_sheets/' +
+                                     'MAW-3_record_all.xlsx',
+                                     sheet_name='MAW-3_4',
+                                     skiprows=3,
+                                     na_values=['MAX d18O', 'MIN d18O'],
+                                     usecols='A, C:E, I:J, Q:R',
+                                     names=['segment', 'ID',
+                                            'dist_mm', 'top_dist_mm',
+                                            'd13C', 'd18O', 'd13C_stdev',
+                                            'd18O_stdev'])
+    full_runs.append(seb_raw_data_3_4)
+    seb_raw_data_3_5 = pd.read_excel('external_excel_sheets/' +
+                                     'MAW-3_record_all.xlsx',
+                                     sheet_name='MAW-3_5',
+                                     skiprows=3,
+                                     na_values=['MAX d18O', 'MIN d18O'],
+                                     usecols='A,C:E, I:J, Q:R',
+                                     names=['segment', 'ID',
+                                            'dist_mm', 'top_dist_mm',
+                                            'd13C', 'd18O', 'd13C_stdev',
+                                            'd18O_stdev'])
+    full_runs.append(seb_raw_data_3_5)
+    seb_raw_data_3_6 = pd.read_excel('external_excel_sheets/' +
+                                     'MAW-3_record_all.xlsx',
+                                     sheet_name='MAW-3_6',
+                                     skiprows=3,
+                                     na_values=['MAX d18O', 'MIN d18O'],
+                                     usecols='A, C:E, I:J, Q:R',
+                                     names=['segment', 'ID',
+                                            'dist_mm', 'top_dist_mm',
+                                            'd13C', 'd18O', 'd13C_stdev',
+                                            'd18O_stdev'])
+    full_runs.append(seb_raw_data_3_6)
+    new_runs_3_4 = intermediate_data_load('MAW-3_4')
+    new_runs_3_5 = intermediate_data_load('MAW-3_5')
+    new_runs_3_6 = intermediate_data_load('MAW-3_6')
 
-    return seb_raw_data, new_runs
+    return full_runs, [new_runs_3_4, new_runs_3_5, new_runs_3_6]
+
+
+def load_full_data():
+    """
+    Loads the other (non incomplete) runs from Seb's data
+    """
+    runs = []
+    seg_run_3_1 = pd.read_excel('external_excel_sheets/' +
+                                'MAW-3_record_all.xlsx',
+                                sheet_name='MAW-3_1_hr',
+                                skiprows=3,
+                                na_values=['MAX d18O', 'MIN d18O'],
+                                usecols='A, C:D, H:I, T:U',
+                                names=['segment', 'ID',
+                                       'dist_mm',
+                                       'd13C', 'd18O', 'd13C_stdev',
+                                       'd18O_stdev'])
+    seg_run_3_1['top_dist_mm'] = seg_run_3_1.dist_mm
+    runs.append(seg_run_3_1)
+    seg_run_3_2 = pd.read_excel('external_excel_sheets/' +
+                                'MAW-3_record_all.xlsx',
+                                sheet_name='MAW-3_2_hr',
+                                skiprows=3,
+                                na_values=['MAX d18O', 'MIN d18O'],
+                                usecols='A, C:D, F, O:P, W:X',
+                                names=['segment', 'ID',
+                                       'dist_mm', 'top_dist_mm',
+                                       'd13C', 'd18O', 'd13C_stdev',
+                                       'd18O_stdev'])
+    runs.append(seg_run_3_2)
+    seg_run_3_3 = pd.read_excel('external_excel_sheets/' +
+                                'MAW-3_record_all.xlsx',
+                                sheet_name='MAW-3_3',
+                                skiprows=3,
+                                na_values=['MAX d18O', 'MIN d18O'],
+                                usecols='A, C:E, I:J, Q:R',
+                                names=['segment', 'ID',
+                                       'dist_mm', 'top_dist_mm',
+                                       'd13C', 'd18O', 'd13C_stdev',
+                                       'd18O_stdev'])
+    runs.append(seg_run_3_3)
+    seg_run_3_7 = pd.read_excel('external_excel_sheets/' +
+                                'MAW-3_record_all.xlsx',
+                                sheet_name='MAW-3_7',
+                                skiprows=3,
+                                na_values=['MAX d18O', 'MIN d18O'],
+                                usecols='A, C:E, I:J, Q:R',
+                                names=['segment', 'ID',
+                                       'dist_mm', 'top_dist_mm',
+                                       'd13C', 'd18O', 'd13C_stdev',
+                                       'd18O_stdev'])
+    runs.append(seg_run_3_7)
+    for seg_run in runs:
+        seg_run.drop_duplicates('ID', inplace=True)
+        seg_run.reset_index(inplace=True, drop=True)
+        seg_run.dropna(how='all', inplace=True)
+
+    return runs
 
 
 def iterative_merge(final_seb, row_one, row_two):
@@ -69,16 +155,23 @@ def iterative_merge(final_seb, row_one, row_two):
     Does an annoying merge that combines the newly bound data from our lab
     to Seb's existing data allowing for NaN to be summed but not removing
     0.0 values
+    Computationally inefficient but i dont see an easy alternative
+    plus its only like 1000 data points so whatever
     """
-    for val_one, val_two, num in zip(final_seb[row_one],
-                                     final_seb[row_two],
+    row_one_copy = deepcopy(final_seb[row_one])
+    row_two_copy = deepcopy(final_seb[row_two])
+    for val_one, val_two, num in zip(row_one_copy,
+                                     row_two_copy,
                                      range(final_seb['ID'].size)):
         if not(np.isnan(val_one)):
             continue
         elif np.isnan(val_one) and np.isnan(val_two):
             continue
         elif np.isnan(val_one) and not(np.isnan(val_two)):
-            final_seb[row_one][num] = val_two
+            row_one_copy[num] = val_two
+        else:
+            row_one_copy[num] = np.mean((val_one, val_two))
+    final_seb[row_one] = row_one_copy
     return final_seb
 
 
@@ -116,8 +209,7 @@ def bind_rows(seb_raw_data, in_between_runs):
             Seb's data with the annoying repeated rows removed
     """
     seb_raw_data.drop_duplicates('ID', inplace=True)
-    seb_raw_data.reset_index(inplace=True)
-    seb_raw_data.drop(['index'], inplace=True, axis=1)
+    seb_raw_data.reset_index(inplace=True, drop=True)
     seb_raw_data.dropna(how='all', inplace=True)
 
     final_seb = deepcopy(seb_raw_data)
@@ -146,23 +238,25 @@ def plot_comp_data(new_seb_data, old_seb_data, max_val, data='d18O', fig=1):
     plt.grid()
 
 
-def plot_comp_smooth(new_seb_data, old_seb_data, max_val, data, fig=1):
+def plot_comp_smooth(new_seb_data, old_seb_data, data, max_val=True, fig=1):
     """
     Smooth line of septh vs d18O/d13C
     Specifically to compare old/new results
     """
-    new_seb_data_plot = new_seb_data.loc[lambda df: df['ID'] <= max_val]
-    old_seb_data_plot = old_seb_data.loc[lambda df: df['ID'] <= max_val]
+    if max_val:
+        max_val = len(new_seb_data)
+    new_seb_data_plot = new_seb_data.loc[lambda df: df.index <= max_val]
+    old_seb_data_plot = old_seb_data.loc[lambda df: df.index <= max_val]
     # Removing stdev of d18O and d13C as some values have NA from Seb data
     stdevs = ['d13C_stdev', 'd18O_stdev']
     new_clean_data = new_seb_data_plot.drop(stdevs, axis=1).dropna()
     old_clean_data = old_seb_data_plot.drop(stdevs, axis=1).dropna()
 
     plt.figure(fig)
-    plt.plot(new_clean_data['dist_mm'].dropna(),
+    plt.plot(new_clean_data['top_dist_mm'].dropna(),
              new_clean_data[data].dropna(),
              label='New Data')
-    plt.plot(old_clean_data['dist_mm'], old_clean_data[data],
+    plt.plot(old_clean_data['top_dist_mm'], old_clean_data[data],
              label='Old Data')
     plt.xlabel('Distance from top (mm)')
     plt.ylabel(data + ' value')
@@ -172,11 +266,19 @@ def plot_comp_smooth(new_seb_data, old_seb_data, max_val, data, fig=1):
 
 
 if __name__ == '__main__':
+    full_runs = load_full_data()
     seb_raw_data, in_bet_data = load_data()
-    final_seb, seb_neat_data = bind_rows(seb_raw_data, in_bet_data)
+    final_seb, seb_neat_data = [], []
+    for full_run, slice_run in zip(seb_raw_data, in_bet_data):
+        final_seb_mid, seb_neat_data_mid = bind_rows(full_run, slice_run)
+        final_seb.append(final_seb_mid)
+        seb_neat_data.append(seb_neat_data_mid)
 
-    plot_comp_smooth(final_seb, seb_neat_data, 722, 'd18O')
-    plot_comp_smooth(final_seb, seb_neat_data, 722, 'd13C', fig=2)
+    all_data = pd.concat(full_runs + final_seb)
+    all_seb_data = pd.concat(full_runs + seb_neat_data)
 
-    final_seb.to_csv('internal_excel_sheets/filled_seb_runs/' +
-                     'MAW-3_5-filled.csv')
+    plot_comp_smooth(all_data, all_seb_data, 'd18O')
+    plot_comp_smooth(all_data, all_seb_data, 'd13C', fig=2)
+
+    # all_data.to_csv('internal_excel_sheets/filled_seb_runs/' +
+    #                  'MAW-3-filled-ALL.csv')
