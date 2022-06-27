@@ -267,15 +267,20 @@ def plot_comp_smooth(new_seb_data, old_seb_data, data, max_val=True, fig=1):
 
 if __name__ == '__main__':
     full_runs = load_full_data()
+    # Pop 3_7 to preserve order when concatenating into a large dataframe
+    im_run_3_7 = full_runs.pop()
     seb_raw_data, in_bet_data = load_data()
     final_seb, seb_neat_data = [], []
+    # Binding the various rows together
     for full_run, slice_run in zip(seb_raw_data, in_bet_data):
         final_seb_mid, seb_neat_data_mid = bind_rows(full_run, slice_run)
         final_seb.append(final_seb_mid)
         seb_neat_data.append(seb_neat_data_mid)
 
-    all_data = pd.concat(full_runs + final_seb)
-    all_seb_data = pd.concat(full_runs + seb_neat_data)
+    all_data = pd.concat(full_runs + final_seb + [im_run_3_7])
+    all_data.reset_index(inplace=True, drop=True)
+    all_seb_data = pd.concat(full_runs + seb_neat_data + [im_run_3_7])
+    all_seb_data.reset_index(inplace=True, drop=True)
 
     plot_comp_smooth(all_data, all_seb_data, 'd18O')
     plot_comp_smooth(all_data, all_seb_data, 'd13C', fig=2)
