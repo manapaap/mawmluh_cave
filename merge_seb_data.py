@@ -12,7 +12,7 @@ import numpy as np
 from copy import deepcopy
 
 
-# 'C:/Users/Aakas/Documents/School/Oster_lab/programs'
+# chdir('C:/Users/Aakas/Documents/School/Oster_lab/programs')
 lab_files = 'C:/Users/Aakas/Documents/School/Oster_lab/'
 chdir(lab_files)
 
