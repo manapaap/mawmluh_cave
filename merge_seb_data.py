@@ -13,8 +13,7 @@ from copy import deepcopy
 
 
 # chdir('C:/Users/Aakas/Documents/School/Oster_lab/programs')
-lab_files = 'C:/Users/Aakas/Documents/School/Oster_lab/'
-chdir(lab_files)
+chdir('C:/Users/Aakas/Documents/School/Oster_lab/')
 
 
 def load_settings(filepath):
@@ -265,7 +264,7 @@ def plot_comp_smooth(new_seb_data, old_seb_data, data, max_val=True, fig=1):
     plt.grid()
 
 
-if __name__ == '__main__':
+def main():
     full_runs = load_full_data()
     # Pop 3_7 to preserve order when concatenating into a large dataframe
     im_run_3_7 = full_runs.pop()
@@ -285,5 +284,9 @@ if __name__ == '__main__':
     plot_comp_smooth(all_data, all_seb_data, 'd18O')
     plot_comp_smooth(all_data, all_seb_data, 'd13C', fig=2)
 
-    # all_data.to_csv('internal_excel_sheets/filled_seb_runs/' +
-    #                  'MAW-3-filled-ALL.csv')
+    all_data.to_csv('internal_excel_sheets/filled_seb_runs/' +
+                    'MAW-3-filled-ALL.csv', index=False)
+
+
+if __name__ == '__main__':
+    main()
