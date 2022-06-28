@@ -83,7 +83,7 @@ def plot_proxies(dataframe, isotope='d18O', fig=1, age='age_BP'):
     plt.plot(dataframe[age], dataframe[isotope])
 
     if age == 'age_BP':
-        plt.xlabel('Age BP')
+        plt.xlabel('Age (Years BP)')
     else:
         plt.xlabel('Age')
     plt.ylabel(isotope + 'variation')
@@ -95,6 +95,7 @@ if __name__ == '__main__':
     maw_3_proxy, copra_maw_3 = load_data_MAW_3()
     maw_3_with_ages = assign_dates(maw_3_proxy, copra_maw_3)
 
-    plot_proxies(maw_3_with_ages[:5880])
-    plot_proxies(maw_3_with_ages[:5880], 'd13C', 2)
 
+    young_proxies = maw_3_with_ages.query('age_BP < 40000')
+    plot_proxies(young_proxies)
+    plot_proxies(young_proxies, 'd13C', 2)

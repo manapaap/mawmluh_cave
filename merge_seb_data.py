@@ -284,8 +284,8 @@ def main():
     plot_comp_smooth(all_data, all_seb_data, 'd18O')
     plot_comp_smooth(all_data, all_seb_data, 'd13C', fig=2)
 
-    all_data.to_csv('internal_excel_sheets/filled_seb_runs/' +
-                    'MAW-3-filled-ALL.csv', index=False)
+    # all_data.to_csv('internal_excel_sheets/filled_seb_runs/' +
+    #                 'MAW-3-filled-ALL.csv', index=False)
 
 
 if __name__ == '__main__':
