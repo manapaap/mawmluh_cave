@@ -15,15 +15,17 @@ import matplotlib.pyplot as plt
 chdir('C:/Users/Aakas/Documents/School/Oster_lab/')
 
 
-def scam_proxy(start, stop, resolution, name):
+def scam_proxy(name):
     """
     Creates a fake proxy CSV for the sake of COPRA to run but allows me
     to do the actual assignment in python
     """
-    num = int((stop - start) / resolution)
-    proxy = pd.DataFrame({'depth': np.linspace(start, stop, num=num),
-                         'proxy': np.random.rand(num)})
-
+    depths_data = pd.read_csv('internal_excel_sheets/filled_seb_runs/' +
+                              'MAW-3-filled-ALL.csv')
+    depths_data.sort_values(by=['top_dist_mm'], inplace=True)
+    proxy = pd.DataFrame({'depth_mm': depths_data.top_dist_mm,
+                          'merge_ID': np.arange(0, depths_data.ID.size,
+                                                dtype=int)})
     proxy.to_csv('internal_excel_sheets/COPRA/' + name + '.csv',
                  header=False, index=False)
 
@@ -35,6 +37,7 @@ def load_data_MAW_3():
     """
     maw_3_data = pd.read_csv('internal_excel_sheets/filled_seb_runs/' +
                              'MAW-3-filled-ALL.csv')
+    maw_3_data.sort_values(by=['top_dist_mm'], inplace=True)
     copra_data = pd.read_csv('internal_excel_sheets/COPRA/MAW-3-copra.txt',
                              names=['age_BP', 'dummy0', '2.5_quatile_age',
                                     '97.5_quantile_age', 'dummy', 'dummy2',
@@ -52,7 +55,8 @@ def find_nearest(array, value, array2):
     https://stackoverflow.com/questions/2566412/
     find-nearest-value-in-numpy-array
 
-    Will allow for date assignment using the copra output
+    Will allow for date assignment using the copra output- Can't merge with
+    depths directly as the float value messes up the join
     """
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
@@ -95,7 +99,6 @@ if __name__ == '__main__':
     maw_3_proxy, copra_maw_3 = load_data_MAW_3()
     maw_3_with_ages = assign_dates(maw_3_proxy, copra_maw_3)
 
-
-    young_proxies = maw_3_with_ages.query('age_BP < 40000')
+    young_proxies = maw_3_with_ages.query('segment <= 6')
     plot_proxies(young_proxies)
     plot_proxies(young_proxies, 'd13C', 2)
