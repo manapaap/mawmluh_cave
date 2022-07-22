@@ -166,12 +166,19 @@ def main():
     maw_3_proxy = assign_dates(maw_3_proxy, copra_maw_3)
     maw_3_proxy['time_resolution'] = temp_resolution(maw_3_proxy.age_BP)
 
-    plot_proxies(maw_3_proxy.query('segment <= 6'))
-    plot_proxies(maw_3_proxy.query('segment <= 6'), 'd13C', 2)
-    plot_temp_resolution(maw_3_proxy.query('segment <= 6'), 3)
+    plot_proxies(maw_3_proxy.query('age_BP <= 42500'))
+    plot_proxies(maw_3_proxy.query('age_BP <= 42500'), 'd13C', 2)
+
+    # plot_temp_resolution(maw_3_proxy.query('segment <= 6'), 3)
 
     maw_3_proxy.to_csv('internal_excel_sheets/filled_seb_runs/' +
                        'MAW-3-filled-AGES.csv', index=False)
+
+    # Autocorrelation- needs further testing
+    autocorrelation_stuff(maw_3_proxy.query('age_BP <= 42500'),
+                          proxy='d18O', fig=4)
+    autocorrelation_stuff(maw_3_proxy.query('age_BP <= 42500'),
+                          proxy='d13C', fig=5)
 
 
 if __name__ == '__main__':
