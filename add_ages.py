@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 from os import chdir
 import matplotlib.pyplot as plt
+from scipy.signal import find_peaks
 
 
 # chdir('C:/Users/Aakas/Documents/School/Oster_lab/programs')
@@ -70,9 +71,9 @@ def assign_dates(speleothem_data, copra_dates):
     ages = np.zeros(len(speleothem_data))
 
     for num, dist in zip(range(len(ages)), speleothem_data.top_dist_mm):
-        ages[num] = find_nearest(copra_maw_3.top_dist_mm,
+        ages[num] = find_nearest(copra_dates.top_dist_mm,
                                  dist,
-                                 copra_maw_3.age_BP)
+                                 copra_dates.age_BP)
     speleothem_data['age_BP'] = ages
     speleothem_data['age'] = 1950 - speleothem_data['age_BP']
 
@@ -95,10 +96,83 @@ def plot_proxies(dataframe, isotope='d18O', fig=1, age='age_BP'):
     plt.grid()
 
 
-if __name__ == '__main__':
-    maw_3_proxy, copra_maw_3 = load_data_MAW_3()
-    maw_3_with_ages = assign_dates(maw_3_proxy, copra_maw_3)
+def autocorr(proxy_arr, time_arr):
+    """
+    Caucluates autocorrelation assuming only positive phase shifts. Wanted to
+    see which time shifts allow us to see which frequencies dominate
+    """
+    result = np.zeros(proxy_arr.size, dtype=float)
+    index = np.arange(0, proxy_arr.size)
+    year_shift = np.zeros(proxy_arr.size, dtype=float)
 
-    young_proxies = maw_3_with_ages.query('segment <= 6')
-    plot_proxies(young_proxies)
-    plot_proxies(young_proxies, 'd13C', 2)
+    start_year = time_arr.iloc[0]
+    for lag in index:
+        result[lag] = proxy_arr.autocorr(lag=lag)
+        year_shift[lag] = time_arr.iloc[lag] - start_year
+
+    return pd.DataFrame({'corr': result,
+                         'phase_shift': year_shift})
+
+
+def temp_resolution(time_arr):
+    """
+    Calculates temperal resolution between points
+    """
+    length = time_arr.size
+    result = np.zeros(length)
+    for time_one, time_two, num in zip(time_arr, time_arr[1:], range(length)):
+        result[num] = time_two - time_one
+    # To handle the final data point
+    result[-1] = result[-2]
+
+    return result
+
+
+def plot_temp_resolution(df, fig):
+    """
+    Plots temporal resolution going down the speleothem- probably useful
+    for determing annual/decadal variation
+    """
+    plt.figure(fig)
+    plt.plot(df.age_BP, df.time_resolution)
+    plt.title('Temporal Resolution of stable isotope sampling')
+    plt.xlabel('Age (Years BP)')
+    plt.ylabel('Temporal Resolution (Years)')
+    plt.grid()
+
+
+def autocorrelation_stuff(df, proxy='d18O', dist=200, fig=1):
+    """
+    Calculates and plots autocorrelation for out proxy of intrest
+    """
+    proxy_autocorr = autocorr(df[proxy], df['age_BP'])
+    peaks, _ = find_peaks(proxy_autocorr['corr'], height=0, distance=dist)
+
+    plt.figure(fig)
+    plt.plot(proxy_autocorr['phase_shift'], proxy_autocorr['corr'])
+    plt.plot(proxy_autocorr['phase_shift'][peaks],
+             proxy_autocorr['corr'][peaks], 'x')
+    plt.title('Autocorrelation of ' + proxy)
+    plt.xlabel('Phase Shift (Years)')
+    plt.ylabel('Correlation')
+    plt.grid()
+
+    return proxy_autocorr, proxy_autocorr['phase_shift'][peaks]
+
+
+def main():
+    global maw_3_proxy
+    maw_3_proxy, copra_maw_3 = load_data_MAW_3()
+    maw_3_proxy = assign_dates(maw_3_proxy, copra_maw_3)
+    maw_3_proxy['time_resolution'] = temp_resolution(maw_3_proxy.age_BP)
+
+    plot_proxies(maw_3_proxy.query('segment <= 6'))
+    plot_proxies(maw_3_proxy.query('segment <= 6'), 'd13C', 2)
+    plot_temp_resolution(maw_3_proxy.query('segment <= 6'), 3)
+
+    maw_3_proxy.to_csv('internal_excel_sheets/filled_seb_runs/' +
+                       'MAW-3-filled-AGES.csv', index=False)
+
+
+if __name__ == '__main__':
+    main()
