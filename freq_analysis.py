@@ -13,6 +13,7 @@ from scipy.fft import fft
 from scipy.interpolate import interp1d
 import pandas as pd
 from os import chdir
+from ssqueezepy import ssq_cwt, visuals
 
 
 # chdir('C:/Users/Aakas/Documents/School/Oster_lab/programs')
@@ -45,38 +46,6 @@ def downsample(df, resolution, kind='slinear'):
     return new_df
 
 
-def plot_wavelet(coefficients, frequencies, time, proxy='d18O'):
-    """
-    Plots wavelets
-    """
-    power = abs(coefficients)
-    period = 1. / frequencies
-    levels = [0.0625 * 2**n for n in range(10)]
-    contourlevels = np.log2(levels)
-
-    fig, ax = plt.subplots(figsize=(15, 10))
-    im = ax.contourf(time, np.log2(period), np.log2(power),
-                     contourlevels, extend='both')
-
-    ax.set_title('Wavelet Transform (Power Spectrum) of ' + proxy,
-                 fontsize=20)
-    ax.set_ylabel('Period (years)', fontsize=18)
-    ax.set_xlabel('Time', fontsize=18)
-
-    yticks = 2**np.arange(np.ceil(np.log2(period.min())),
-                          np.ceil(np.log2(period.max())))
-    ax.set_yticks(np.log2(yticks))
-    ax.set_yticklabels(yticks)
-    ax.invert_yaxis()
-    ylim = ax.get_ylim()
-    ax.set_ylim(ylim[0], -1)
-
-    cbar_ax = fig.add_axes([0.95, 0.5, 0.03, 0.25])
-    fig.colorbar(im, cax=cbar_ax, orientation="vertical")
-    plt.grid()
-    plt.show()
-
-
 def im_plot_wavelet(coef, freq):
     """
     Plots the scalogram using a different plotting method so I can compare them
@@ -87,22 +56,33 @@ def im_plot_wavelet(coef, freq):
     plt.show()
 
 
+def other_cwt(df, proxy='d18O'):
+    Tx, Wx, freqs, scales, *_ = ssq_cwt(np.array(df[proxy]),
+                                        wavelet='cmhat')
+    visuals.imshow(Wx, abs=1, yticks=1/freqs)
+
+
 def main():
-    global freq_O, coefs_O
     maw_3_proxy = load_data(clean=True, filter_year='40000')
-    maw_3_down = downsample(maw_3_proxy, 10)
+    maw_3_down = downsample(maw_3_proxy, 20)
 
     coefs_O, freq_O = pywt.cwt(maw_3_down['d18O'],
-                               np.arange(1, 1024, 1),
-                               'morl', 10)
+                               np.arange(1, 2048, 1),
+                               'morl', 20)
     coefs_C, freq_C = pywt.cwt(maw_3_down['d13C'],
-                               np.arange(1, 1024, 1),
-                               'morl', 10)
+                               np.arange(1, 2048, 1),
+                               'morl', 20)
 
-    plot_wavelet(coefs_O, freq_O, maw_3_down['age_BP'])
-    im_plot_wavelet(coefs_O, freq_O)
-    plot_wavelet(coefs_C, freq_C, maw_3_down['age_BP'], proxy='d13C')
-    im_plot_wavelet(coefs_C, freq_C)
+    # im_plot_wavelet(coefs_O, freq_O)
+    # im_plot_wavelet(coefs_C, freq_C)
+
+    other_cwt(maw_3_down, 'd18O')
+    other_cwt(maw_3_down, 'd13C')
+
+    # Downsampled for input to matlab- this will be out actual CWT test
+    # as the defauly python ones are lacking
+    maw_3_down.to_csv('internal_excel_sheets/filled_seb_runs/' +
+                      'MAW-3-downsample.csv', index=False)
 
 
 if __name__ == '__main__':
