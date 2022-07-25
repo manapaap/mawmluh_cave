@@ -96,24 +96,6 @@ def plot_proxies(dataframe, isotope='d18O', fig=1, age='age_BP'):
     plt.grid()
 
 
-def autocorr(proxy_arr, time_arr):
-    """
-    Caucluates autocorrelation assuming only positive phase shifts. Wanted to
-    see which time shifts allow us to see which frequencies dominate
-    """
-    result = np.zeros(proxy_arr.size, dtype=float)
-    index = np.arange(0, proxy_arr.size)
-    year_shift = np.zeros(proxy_arr.size, dtype=float)
-
-    start_year = time_arr.iloc[0]
-    for lag in index:
-        result[lag] = proxy_arr.autocorr(lag=lag)
-        year_shift[lag] = time_arr.iloc[lag] - start_year
-
-    return pd.DataFrame({'corr': result,
-                         'phase_shift': year_shift})
-
-
 def temp_resolution(time_arr):
     """
     Calculates temperal resolution between points
@@ -141,23 +123,11 @@ def plot_temp_resolution(df, fig):
     plt.grid()
 
 
-def autocorrelation_stuff(df, proxy='d18O', dist=200, fig=1):
+def sine_wave(input_x, wavelen, y_shift):
     """
-    Calculates and plots autocorrelation for out proxy of intrest
+    Outputs sine wave of given wavelength across extent of the input array
     """
-    proxy_autocorr = autocorr(df[proxy], df['age_BP'])
-    peaks, _ = find_peaks(proxy_autocorr['corr'], height=0, distance=dist)
-
-    plt.figure(fig)
-    plt.plot(proxy_autocorr['phase_shift'], proxy_autocorr['corr'])
-    plt.plot(proxy_autocorr['phase_shift'][peaks],
-             proxy_autocorr['corr'][peaks], 'x')
-    plt.title('Autocorrelation of ' + proxy)
-    plt.xlabel('Phase Shift (Years)')
-    plt.ylabel('Correlation')
-    plt.grid()
-
-    return proxy_autocorr, proxy_autocorr['phase_shift'][peaks]
+    return np.sin(2 * np.pi * input_x / wavelen) + y_shift
 
 
 def main():
@@ -173,12 +143,6 @@ def main():
 
     maw_3_proxy.to_csv('internal_excel_sheets/filled_seb_runs/' +
                        'MAW-3-filled-AGES.csv', index=False)
-
-    # Autocorrelation- needs further testing
-    autocorrelation_stuff(maw_3_proxy.query('age_BP <= 42500'),
-                          proxy='d18O', fig=4)
-    autocorrelation_stuff(maw_3_proxy.query('age_BP <= 42500'),
-                          proxy='d13C', fig=5)
 
 
 if __name__ == '__main__':
