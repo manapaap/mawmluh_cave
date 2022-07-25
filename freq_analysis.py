@@ -10,6 +10,7 @@ import pywt
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.fft import fft
+from scipy.interpolate import interp1d
 import pandas as pd
 from os import chdir
 
@@ -18,7 +19,7 @@ from os import chdir
 chdir('C:/Users/Aakas/Documents/School/Oster_lab/')
 
 
-def load_data(clean=True, filter_year='42500'):
+def load_data(clean=True, filter_year='40000'):
     """
     Loats MAW-3 record (and eventually CH1 too!)
     """
@@ -31,12 +32,17 @@ def load_data(clean=True, filter_year='42500'):
     return maw_3_proxy
 
 
-def wavelet(time, signal, scales, wavelet='mexh'):
+def downsample(df, resolution, kind='slinear'):
     """
-    Performs our wavelet transform
+    Returns a downsampled version of our proxy record in dataframe form
     """
-    coefs, freq = pywt.cwt(signal, scales, wavelet)
-    return coefs, freq
+    func_d18O = interp1d(df['age_BP'], df['d18O'], kind=kind)
+    func_d13C = interp1d(df['age_BP'], df['d13C'], kind=kind)
+    new_ages = np.arange(df['age_BP'].min(), df['age_BP'].max(), resolution)
+    new_df = pd.DataFrame({'d18O': func_d18O(new_ages),
+                           'd13C': func_d13C(new_ages),
+                           'age_BP': new_ages})
+    return new_df
 
 
 def plot_wavelet(coefficients, frequencies, time, proxy='d18O'):
@@ -83,15 +89,20 @@ def im_plot_wavelet(coef, freq):
 
 def main():
     global freq_O, coefs_O
-    maw_3_proxy = load_data()
-    coefs_O, freq_O = pywt.cwt(maw_3_proxy['d18O'], np.arange(1, 4096, 1),
-                               'morl', maw_3_proxy['time_resolution'].mean())
-    coefs_C, freq_C = pywt.cwt(maw_3_proxy['d13C'], np.arange(1, 2048, 1),
-                               'morl', maw_3_proxy['time_resolution'].mean())
+    maw_3_proxy = load_data(clean=True, filter_year='40000')
+    maw_3_down = downsample(maw_3_proxy, 10)
 
-    plot_wavelet(coefs_O, freq_O, maw_3_proxy['age_BP'])
+    coefs_O, freq_O = pywt.cwt(maw_3_down['d18O'],
+                               np.arange(1, 1024, 1),
+                               'morl', 10)
+    coefs_C, freq_C = pywt.cwt(maw_3_down['d13C'],
+                               np.arange(1, 1024, 1),
+                               'morl', 10)
+
+    plot_wavelet(coefs_O, freq_O, maw_3_down['age_BP'])
     im_plot_wavelet(coefs_O, freq_O)
-    plot_wavelet(coefs_C, freq_C, maw_3_proxy['age_BP'], proxy='d13C')
+    plot_wavelet(coefs_C, freq_C, maw_3_down['age_BP'], proxy='d13C')
+    im_plot_wavelet(coefs_C, freq_C)
 
 
 if __name__ == '__main__':
