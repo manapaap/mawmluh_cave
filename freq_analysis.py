@@ -10,6 +10,7 @@ import pywt
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.fft import fft
+from scipy.signal import welch
 from scipy.interpolate import interp1d
 import pandas as pd
 from os import chdir
@@ -62,22 +63,33 @@ def other_cwt(df, proxy='d18O'):
     visuals.imshow(Wx, abs=1, yticks=1/freqs)
 
 
+def fourier(df, fs=20, proxy='d18O', fig=1):
+    """
+    Plots a power spectral density of our downscaled dataframe-
+    again to observe any dominant frequencies
+    """
+    pxx, freq = plt.psd(df[proxy], Fs=1 / fs)
+    plt.show()
+
+
 def main():
     maw_3_proxy = load_data(clean=True, filter_year='40000')
     maw_3_down = downsample(maw_3_proxy, 20)
 
-    coefs_O, freq_O = pywt.cwt(maw_3_down['d18O'],
-                               np.arange(1, 2048, 1),
-                               'morl', 20)
-    coefs_C, freq_C = pywt.cwt(maw_3_down['d13C'],
-                               np.arange(1, 2048, 1),
-                               'morl', 20)
+    # coefs_O, freq_O = pywt.cwt(maw_3_down['d18O'],
+    #                            np.arange(1, 2048, 1),
+    #                            'morl', 20)
+    # coefs_C, freq_C = pywt.cwt(maw_3_down['d13C'],
+    #                           np.arange(1, 2048, 1),
+    #                           'morl', 20)
 
     # im_plot_wavelet(coefs_O, freq_O)
     # im_plot_wavelet(coefs_C, freq_C)
 
     other_cwt(maw_3_down, 'd18O')
     other_cwt(maw_3_down, 'd13C')
+
+    fourier(maw_3_down, proxy='d18O', fig=1, fs=20)
 
     # Downsampled for input to matlab- this will be out actual CWT test
     # as the defauly python ones are lacking
