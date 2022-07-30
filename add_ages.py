@@ -123,13 +123,6 @@ def plot_temp_resolution(df, fig):
     plt.grid()
 
 
-def sine_wave(input_x, wavelen, y_shift):
-    """
-    Outputs sine wave of given wavelength across extent of the input array
-    """
-    return np.sin(2 * np.pi * input_x / wavelen) + y_shift
-
-
 def main():
     global maw_3_proxy
     maw_3_proxy, copra_maw_3 = load_data_MAW_3()

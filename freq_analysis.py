@@ -10,11 +10,9 @@ import pywt
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.fft import fft
-from scipy.signal import welch
 from scipy.interpolate import interp1d
 import pandas as pd
 from os import chdir
-from ssqueezepy import ssq_cwt, visuals
 
 
 # chdir('C:/Users/Aakas/Documents/School/Oster_lab/programs')
@@ -47,6 +45,13 @@ def downsample(df, resolution, kind='slinear'):
     return new_df
 
 
+def sine_wave(input_x, wavelen, y_shift=0):
+    """
+    Outputs sine wave of given wavelength across extent of the input array
+    """
+    return np.sin(2 * np.pi * input_x / wavelen) + y_shift
+
+
 def im_plot_wavelet(coef, freq):
     """
     Plots the scalogram using a different plotting method so I can compare them
@@ -57,39 +62,39 @@ def im_plot_wavelet(coef, freq):
     plt.show()
 
 
-def other_cwt(df, proxy='d18O'):
-    Tx, Wx, freqs, scales, *_ = ssq_cwt(np.array(df[proxy]),
-                                        wavelet='cmhat')
-    visuals.imshow(Wx, abs=1, yticks=1/freqs)
-
-
 def fourier(df, fs=20, proxy='d18O', fig=1):
     """
     Plots a power spectral density of our downscaled dataframe-
     again to observe any dominant frequencies
     """
     pxx, freq = plt.psd(df[proxy], Fs=1 / fs)
+    plt.title(f'Power Spectral Density of {proxy}')
     plt.show()
 
 
 def main():
+    down_period = 20
+
     maw_3_proxy = load_data(clean=True, filter_year='40000')
-    maw_3_down = downsample(maw_3_proxy, 20)
+    maw_3_down = downsample(maw_3_proxy, down_period)
 
-    # coefs_O, freq_O = pywt.cwt(maw_3_down['d18O'],
-    #                            np.arange(1, 2048, 1),
-    #                            'morl', 20)
-    # coefs_C, freq_C = pywt.cwt(maw_3_down['d13C'],
-    #                           np.arange(1, 2048, 1),
-    #                           'morl', 20)
+    # Let's plot a power spectral density
+    fourier(maw_3_down, proxy='d18O', fig=1, fs=down_period)
+    fourier(maw_3_down, proxy='d13C', fig=1, fs=down_period)
 
-    # im_plot_wavelet(coefs_O, freq_O)
-    # im_plot_wavelet(coefs_C, freq_C)
+    # Pandas autocorrelation plots- d13C has no interesting signal
+    # but d18O does
+    pd.plotting.autocorrelation_plot(maw_3_down['d18O'])
+    plt.title('Autocorrelation of d18O')
 
-    other_cwt(maw_3_down, 'd18O')
-    other_cwt(maw_3_down, 'd13C')
+    plt.figure(2)
+    pd.plotting.autocorrelation_plot(maw_3_down['d13C'])
+    plt.title('Autocorrelation of d13C')
 
-    fourier(maw_3_down, proxy='d18O', fig=1, fs=20)
+    # Let's try to find the actual peak
+    corr_range = [maw_3_down['d18O'].autocorr(lag) for lag in range(100, 200)]
+    max_corr = down_period * (corr_range.index(max(corr_range)) + 100)
+    print(f'Max autocorrelation at {max_corr} year period')
 
     # Downsampled for input to matlab- this will be out actual CWT test
     # as the defauly python ones are lacking
