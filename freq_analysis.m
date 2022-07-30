@@ -14,8 +14,8 @@ numfreq = 10;
 freq = logspace(log10(years(minf)),log10(years(maxf)),numfreq);
 freq = cast(freq, 'int32');
 
-% cwt(maw_3_proxy.d18O, years(num_years))
-cwt(maw_3_proxy.d13C, years(num_years))
+cwt(maw_3_proxy.d18O, years(num_years))
+% cwt(maw_3_proxy.d13C, years(num_years))
 
 AX = gca;
 AX.YTickLabelMode = "auto";

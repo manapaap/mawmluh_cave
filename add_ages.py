@@ -124,7 +124,6 @@ def plot_temp_resolution(df, fig):
 
 
 def main():
-    global maw_3_proxy
     maw_3_proxy, copra_maw_3 = load_data_MAW_3()
     maw_3_proxy = assign_dates(maw_3_proxy, copra_maw_3)
     maw_3_proxy['time_resolution'] = temp_resolution(maw_3_proxy.age_BP)
