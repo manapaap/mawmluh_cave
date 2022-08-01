@@ -9,7 +9,6 @@ import pandas as pd
 import numpy as np
 from os import chdir
 import matplotlib.pyplot as plt
-from scipy.signal import find_peaks
 
 
 # chdir('C:/Users/Aakas/Documents/School/Oster_lab/programs')
@@ -91,7 +90,7 @@ def plot_proxies(dataframe, isotope='d18O', fig=1, age='age_BP'):
         plt.xlabel('Age (Years BP)')
     else:
         plt.xlabel('Age')
-    plt.ylabel(isotope + 'variation')
+    plt.ylabel(isotope + ' (‰)')
     plt.title('Variation of ' + isotope + ' with Age')
     plt.grid()
 

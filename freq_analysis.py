@@ -25,11 +25,19 @@ def load_data(clean=True, filter_year='40000'):
     """
     maw_3_proxy = pd.read_csv('internal_excel_sheets/filled_seb_runs/' +
                               'MAW-3-filled-AGES.csv')
-    if clean:
-        maw_3_proxy = maw_3_proxy.query(f'age_BP <= {filter_year}')
-        maw_3_proxy = maw_3_proxy.dropna(subset=['age_BP', 'd18O', 'd13C'])
 
-    return maw_3_proxy
+    # Greenland NGRIP Data to compare trends
+    # https://www.iceandclimate.nbi.ku.dk/data/
+    ngrip_data = pd.read_excel('external_excel_sheets/NGRIP_d18O.xls',
+                               sheet_name='NGRIP-2 d18O and Dust',
+                               names=['depth_m', 'd18O', 'dust',
+                                      'age_BP', 'age_error'])
+
+    if clean:
+        maw_3_clean = maw_3_proxy.query(f'age_BP <= {filter_year}')
+        maw_3_clean = maw_3_clean.dropna(subset=['age_BP', 'd18O', 'd13C'])
+
+    return maw_3_clean, maw_3_proxy, ngrip_data
 
 
 def downsample(df, resolution, kind='slinear'):
@@ -72,10 +80,104 @@ def fourier(df, fs=20, proxy='d18O', fig=1):
     plt.show()
 
 
+def compare_records(cave_record, ngrip_record, since=40000, how='layer'):
+    """
+    Plots the two records side by side to allow for comparisions
+    """
+    cave_record = cave_record.query(f'age_BP < {since}')
+
+    max_year = cave_record['age_BP'].iloc[-1]
+    min_year = cave_record['age_BP'].iloc[1]
+
+    ngrip_small = ngrip_record.query(f'age_BP <= {max_year} & ' +
+                                     f'age_BP >= {min_year}')
+
+    if how == 'layer':
+        layered_plot(cave_record, ngrip_small)
+    else:
+        staggered_plot(cave_record, ngrip_small)
+
+
+def layered_plot(cave_record, ngrip_small):
+    """
+    Plots the records overlaid with each other
+    """
+    fig, ax = plt.subplots()
+    twin1 = ax.twinx()
+    twin2 = ax.twinx()
+    twin2.spines['right'].set_position(("axes", 1.15))
+
+    color1 = plt.cm.viridis(0)
+    color2 = plt.cm.viridis(0.5)
+    color3 = plt.cm.viridis(.9)
+
+    d18O_green, = ax.plot(ngrip_small['age_BP'], ngrip_small['d18O'],
+                          label='NGRIP d18O', color=color3)
+    d18O, = twin1.plot(cave_record['age_BP'], cave_record['d18O'],
+                       label='MAW-3 d18O', color=color1)
+    d13C, = twin2.plot(cave_record['age_BP'], cave_record['d13C'],
+                       label='MAW-3 d13C', color=color2)
+
+    ax.set_xlim()
+    ax.grid()
+    ax.set_ylabel('NGRIP d18O (‰)')
+    twin1.set_ylabel('MAW-3 d18O (‰)')
+    twin2.set_ylabel('MAW-3 d13C (‰)')
+    ax.set_xlabel('Age (Years BP)')
+    ax.set_title('MAW-3 Comparision with NGRIP Record')
+
+    ax.set_ylim(-55, -30)
+    twin1.set_ylim(-12, 0)
+    twin2.set_ylim(-5, 4)
+
+    ax.legend(handles=[d18O_green, d13C, d18O], loc='best')
+
+    plt.show()
+
+
+def staggered_plot(cave_record, ngrip_small):
+    """
+    Plots the records but in a staggered fashion
+    """
+    fig, ax = plt.subplots(3, 1, sharex=True)
+    fig.set_size_inches(10, 5)
+    fig.subplots_adjust(hspace=0)
+
+    color1 = plt.cm.viridis(0)
+    color2 = plt.cm.viridis(0.5)
+    color3 = plt.cm.viridis(.9)
+
+    ax[0].plot(cave_record['age_BP'], cave_record['d18O'],
+               label='MAW-3 d18O', color=color1)
+    ax[0].set_ylim(-12, 0)
+    ax[0].grid()
+    ax[0].set_ylabel('MAW-3 d18O ‰')
+    ax[0].set_yticks(np.arange(-12, 0, 2))
+
+    ax[1].plot(cave_record['age_BP'], cave_record['d13C'],
+               label='MAW-3 d13C', color=color2)
+    ax[1].set_ylim(-5, 4)
+    ax[1].grid()
+    ax[1].set_ylabel('MAW-3 d13C ‰')
+    ax[1].set_yticks(np.arange(-5, 4, 2))
+
+    ax[2].plot(ngrip_small['age_BP'], ngrip_small['d18O'],
+               label='NGRIP d18O', color=color3)
+    ax[2].set_ylim(-55, -30)
+    ax[2].grid()
+    ax[2].set_ylabel('NGRIP d18O ‰')
+    ax[2].set_xlabel('Age (Years BP)')
+    ax[2].set_yticks(np.arange(-55, -30, 5))
+
+    ax[0].set_title('Comparison of Speleothem Proxies with NGRIP d18O')
+    plt.show()
+
+
 def main():
     down_period = 20
 
-    maw_3_proxy = load_data(clean=True, filter_year='40000')
+    maw_3_proxy, maw_3_mess, ngrip_data = load_data(clean=True,
+                                                    filter_year='40000')
     maw_3_down = downsample(maw_3_proxy, down_period)
 
     # Let's plot a power spectral density
@@ -95,6 +197,9 @@ def main():
     corr_range = [maw_3_down['d18O'].autocorr(lag) for lag in range(100, 200)]
     max_corr = down_period * (corr_range.index(max(corr_range)) + 100)
     print(f'Max autocorrelation at {max_corr} year period')
+
+    # Comapre to NGRIP
+    compare_records(maw_3_mess, ngrip_data, how='stagger')
 
     # Downsampled for input to matlab- this will be out actual CWT test
     # as the defauly python ones are lacking
