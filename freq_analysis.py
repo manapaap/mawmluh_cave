@@ -13,6 +13,7 @@ from scipy.fft import fft
 from scipy.interpolate import interp1d
 import pandas as pd
 from os import chdir
+from matplotlib import ticker
 
 
 # chdir('C:/Users/Aakas/Documents/School/Oster_lab/programs')
@@ -37,7 +38,11 @@ def load_data(clean=True, filter_year='40000'):
         maw_3_clean = maw_3_proxy.query(f'age_BP <= {filter_year}')
         maw_3_clean = maw_3_clean.dropna(subset=['age_BP', 'd18O', 'd13C'])
 
-    return maw_3_clean, maw_3_proxy, ngrip_data
+    records = {'maw_3_clean': maw_3_clean,
+               'maw_3_proxy': maw_3_proxy,
+               'ngrip': ngrip_data}
+
+    return records
 
 
 def downsample(df, resolution, kind='slinear'):
@@ -149,25 +154,25 @@ def staggered_plot(cave_record, ngrip_small):
 
     ax[0].plot(cave_record['age_BP'], cave_record['d18O'],
                label='MAW-3 d18O', color=color1)
-    ax[0].set_ylim(-12, 0)
+    ax[0].set_ylim(-8, -0.5)
     ax[0].grid()
     ax[0].set_ylabel('MAW-3 d18O ‰')
-    ax[0].set_yticks(np.arange(-12, 0, 2))
+    ax[0].set_yticks(np.arange(-7, 0, 2))
 
     ax[1].plot(cave_record['age_BP'], cave_record['d13C'],
                label='MAW-3 d13C', color=color2)
     ax[1].set_ylim(-5, 4)
     ax[1].grid()
     ax[1].set_ylabel('MAW-3 d13C ‰')
-    ax[1].set_yticks(np.arange(-5, 4, 2))
+    ax[1].set_yticks(np.arange(-4, 4, 2))
 
     ax[2].plot(ngrip_small['age_BP'], ngrip_small['d18O'],
                label='NGRIP d18O', color=color3)
-    ax[2].set_ylim(-55, -30)
+    ax[2].set_ylim(-52, -33)
     ax[2].grid()
     ax[2].set_ylabel('NGRIP d18O ‰')
     ax[2].set_xlabel('Age (Years BP)')
-    ax[2].set_yticks(np.arange(-55, -30, 5))
+    ax[2].set_yticks(np.arange(-48, -32, 4))
 
     ax[0].set_title('Comparison of Speleothem Proxies with NGRIP d18O')
     plt.show()
@@ -176,35 +181,34 @@ def staggered_plot(cave_record, ngrip_small):
 def main():
     down_period = 20
 
-    maw_3_proxy, maw_3_mess, ngrip_data = load_data(clean=True,
-                                                    filter_year='40000')
-    maw_3_down = downsample(maw_3_proxy, down_period)
+    records = load_data(clean=True, filter_year='40000')
+    records['maw_3_down'] = downsample(records['maw_3_clean'], down_period)
 
     # Let's plot a power spectral density
-    fourier(maw_3_down, proxy='d18O', fig=1, fs=down_period)
-    fourier(maw_3_down, proxy='d13C', fig=1, fs=down_period)
+    fourier(records['maw_3_down'], proxy='d18O', fig=1, fs=down_period)
+    fourier(records['maw_3_down'], proxy='d13C', fig=1, fs=down_period)
 
     # Pandas autocorrelation plots- d13C has no interesting signal
     # but d18O does
-    pd.plotting.autocorrelation_plot(maw_3_down['d18O'])
+    pd.plotting.autocorrelation_plot(records['maw_3_down']['d18O'])
     plt.title('Autocorrelation of d18O')
 
     plt.figure(2)
-    pd.plotting.autocorrelation_plot(maw_3_down['d13C'])
+    pd.plotting.autocorrelation_plot(records['maw_3_down']['d13C'])
     plt.title('Autocorrelation of d13C')
 
     # Let's try to find the actual peak
-    corr_range = [maw_3_down['d18O'].autocorr(lag) for lag in range(100, 200)]
+    corr_range = [records['maw_3_down']['d18O'].autocorr(lag) for lag in range(100, 200)]
     max_corr = down_period * (corr_range.index(max(corr_range)) + 100)
     print(f'Max autocorrelation at {max_corr} year period')
 
     # Comapre to NGRIP
-    compare_records(maw_3_mess, ngrip_data, how='stagger')
+    compare_records(records['maw_3_proxy'], records['ngrip'], how='stagger')
 
     # Downsampled for input to matlab- this will be out actual CWT test
     # as the defauly python ones are lacking
-    maw_3_down.to_csv('internal_excel_sheets/filled_seb_runs/' +
-                      'MAW-3-downsample.csv', index=False)
+    records['maw_3_down'].to_csv('internal_excel_sheets/filled_seb_runs/' +
+                                 'MAW-3-downsample.csv', index=False)
 
 
 if __name__ == '__main__':
