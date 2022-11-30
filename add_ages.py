@@ -132,6 +132,8 @@ def main():
 
     # plot_temp_resolution(maw_3_proxy.query('segment <= 6'), 3)
 
+    # Retroactively adding stalagmite information to allow CH1 to be combined
+    maw_3_proxy['stal'] = 'MAW-3'
     maw_3_proxy.to_csv('internal_excel_sheets/filled_seb_runs/' +
                        'MAW-3-filled-AGES.csv', index=False)
 

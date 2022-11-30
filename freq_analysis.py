@@ -23,9 +23,14 @@ chdir('C:/Users/Aakas/Documents/School/Oster_lab/')
 def load_data(clean=True, filter_year='40000'):
     """
     Loats MAW-3 record (and eventually CH1 too!)
+
+    Time to add in  CH1!
     """
+    global records
     maw_3_proxy = pd.read_csv('internal_excel_sheets/filled_seb_runs/' +
                               'MAW-3-filled-AGES.csv')
+    ch1_proxy = pd.read_csv('internal_excel_sheets/filled_seb_runs/' +
+                            'CH1-filled-AGES.csv')
 
     # Greenland NGRIP Data to compare trends
     # https://www.iceandclimate.nbi.ku.dk/data/
@@ -39,6 +44,7 @@ def load_data(clean=True, filter_year='40000'):
         maw_3_clean = maw_3_clean.dropna(subset=['age_BP', 'd18O', 'd13C'])
 
     records = {'maw_3_clean': maw_3_clean,
+               'ch1_proxy': ch1_proxy,
                'maw_3_proxy': maw_3_proxy,
                'ngrip': ngrip_data}
 
@@ -178,6 +184,55 @@ def staggered_plot(cave_record, ngrip_small):
     plt.show()
 
 
+def merge_records(maw_3_record, ch1_record):
+    """
+    Merges the two individual records for one collective larger record
+
+    Colbined record will only contain minimum needed information
+    """
+    maw_3_strip = maw_3_record[['age_BP', 'd18O', 'd13C', 'stal', 'segment']]
+    ch1_strip = ch1_record[['age_BP', 'd18O', 'd13C', 'stal', 'segment']]
+
+    full_record = pd.concat([maw_3_strip, ch1_strip])
+    full_record.sort_values(by='age_BP', inplace=True)
+
+    return full_record
+
+
+def compare_stals(records_clean):
+    """
+    Plots the data from CH1 and MAW-3 side by side to allow for comparision
+    """
+    ch1_data = records_clean.query('stal == "CH1"')
+    ch1_max = ch1_data['age_BP'].max()
+    ch1_min = ch1_data['age_BP'].min()
+
+    maw_3_data = records_clean.query('stal == "MAW-3"')
+    maw_3_data = maw_3_data.query(f'age_BP > {ch1_min} & age_BP < {ch1_max}')
+
+    # Use ax1 for d18O and ax2 for d13C
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+
+    ax1.plot(maw_3_data['age_BP'], maw_3_data['d18O'], color='blue',
+             label='MAW-3 d18O')
+    ax1.plot(ch1_data['age_BP'], ch1_data['d18O'], color='red',
+             label='CH1 d18O')
+    ax1.legend()
+
+    ax2.plot(maw_3_data['age_BP'], maw_3_data['d13C'], color='green',
+             label='MAW-3 d13C')
+    ax2.plot(ch1_data['age_BP'], ch1_data['d13C'], color='red',
+             label='CH1 d13C')
+    ax2.legend()
+
+    ax1.set_ylabel('d18O (‰)')
+    ax2.set_ylabel('d13C (‰)')
+    ax1.set_title('Stable Isotope Information from Different Speleothems')
+    ax2.set_xlabel('Age BP')
+    plt.grid()
+    ax1.grid()
+
+
 def main():
     down_period = 20
 
@@ -185,17 +240,17 @@ def main():
     records['maw_3_down'] = downsample(records['maw_3_clean'], down_period)
 
     # Let's plot a power spectral density
-    fourier(records['maw_3_down'], proxy='d18O', fig=1, fs=down_period)
-    fourier(records['maw_3_down'], proxy='d13C', fig=1, fs=down_period)
+    # fourier(records['maw_3_down'], proxy='d18O', fig=1, fs=down_period)
+    # fourier(records['maw_3_down'], proxy='d13C', fig=1, fs=down_period)
 
     # Pandas autocorrelation plots- d13C has no interesting signal
     # but d18O does
     pd.plotting.autocorrelation_plot(records['maw_3_down']['d18O'])
     plt.title('Autocorrelation of d18O')
 
-    plt.figure(2)
-    pd.plotting.autocorrelation_plot(records['maw_3_down']['d13C'])
-    plt.title('Autocorrelation of d13C')
+    # plt.figure(2)
+    # pd.plotting.autocorrelation_plot(records['maw_3_down']['d13C'])
+    # plt.title('Autocorrelation of d13C')
 
     # Let's try to find the actual peak
     corr_range = [records['maw_3_down']['d18O'].autocorr(lag) for lag in range(100, 200)]
@@ -209,6 +264,17 @@ def main():
     # as the defauly python ones are lacking
     records['maw_3_down'].to_csv('internal_excel_sheets/filled_seb_runs/' +
                                  'MAW-3-downsample.csv', index=False)
+
+    # Let's create a synthesis record containing both CH1 and MAW-3
+    # We can repeat the more useful analysis (basically the wavelet transform)
+    # On this combined record
+    records['ALL'] = merge_records(records['maw_3_proxy'],
+                                   records['ch1_proxy'])
+    records['ALL_clean'] = records['ALL'].dropna(subset=['age_BP',
+                                                         'd18O', 'd13C'])
+
+    # We must compare the differences in age over the specified age
+    compare_stals(records['ALL_clean'])
 
 
 if __name__ == '__main__':
