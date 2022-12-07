@@ -36,8 +36,25 @@ def load_data(clean=True, filter_year='40000'):
     # https://www.iceandclimate.nbi.ku.dk/data/
     ngrip_data = pd.read_excel('external_excel_sheets/NGRIP_d18O.xls',
                                sheet_name='NGRIP-2 d18O and Dust',
-                               names=['depth_m', 'd18O', 'dust',
+                               names=['depth_mm', 'd18O', 'dust',
                                       'age_BP', 'age_error'])
+
+    hulu_data = pd.DataFrame()
+    # Need to do bullshit for hulu cave as the file is badly formatted
+    age = []
+    d18O = []
+    with open('external_excel_sheets/hulu_cave_d18O.txt') as file:
+        for count, line in enumerate(file.readlines()):
+            if count == 0:
+                continue
+            age.append(line[15:20].strip())
+            d18O.append(line[25:].strip())
+
+    hulu_data = pd.DataFrame({'age_BP': age,
+                              'd18O': d18O})
+    hulu_data['d18O'] = pd.to_numeric(hulu_data['d18O'])
+    hulu_data['age_BP'] = pd.to_numeric(hulu_data['age_BP'])
+    hulu_data.sort_values(by='age_BP', inplace=True)
 
     if clean:
         maw_3_clean = maw_3_proxy.query(f'age_BP <= {filter_year}')
@@ -46,7 +63,8 @@ def load_data(clean=True, filter_year='40000'):
     records = {'maw_3_clean': maw_3_clean,
                'ch1_proxy': ch1_proxy,
                'maw_3_proxy': maw_3_proxy,
-               'ngrip': ngrip_data}
+               'ngrip': ngrip_data,
+               'hulu': hulu_data}
 
     return records
 
@@ -91,7 +109,7 @@ def fourier(df, fs=20, proxy='d18O', fig=1):
     plt.show()
 
 
-def compare_records(cave_record, ngrip_record, since=40000, how='layer'):
+def compare_records(cave_record, ngrip_record, hulu, since=40000, how='layer'):
     """
     Plots the two records side by side to allow for comparisions
     """
@@ -102,11 +120,13 @@ def compare_records(cave_record, ngrip_record, since=40000, how='layer'):
 
     ngrip_small = ngrip_record.query(f'age_BP <= {max_year} & ' +
                                      f'age_BP >= {min_year}')
+    hulu_small = hulu.query(f'age_BP <= {max_year} & ' +
+                            f'age_BP >= {min_year}')
 
     if how == 'layer':
         layered_plot(cave_record, ngrip_small)
     else:
-        staggered_plot(cave_record, ngrip_small)
+        staggered_plot(cave_record, ngrip_small, hulu_small)
 
 
 def layered_plot(cave_record, ngrip_small):
@@ -146,39 +166,51 @@ def layered_plot(cave_record, ngrip_small):
     plt.show()
 
 
-def staggered_plot(cave_record, ngrip_small):
+def staggered_plot(cave_record, ngrip_small, hulu_small):
     """
     Plots the records but in a staggered fashion
     """
-    fig, ax = plt.subplots(3, 1, sharex=True)
+    fig, ax = plt.subplots(4, 1, sharex=True)
     fig.set_size_inches(10, 5)
     fig.subplots_adjust(hspace=0)
+    plt.tight_layout()
 
     color1 = plt.cm.viridis(0)
     color2 = plt.cm.viridis(0.5)
-    color3 = plt.cm.viridis(.9)
+    color3 = plt.cm.viridis(0.65)
+    color4 = plt.cm.viridis(0.9)
 
     ax[0].plot(cave_record['age_BP'], cave_record['d18O'],
                label='MAW-3 d18O', color=color1)
     ax[0].set_ylim(-8, -0.5)
+    ax[0].invert_yaxis()
     ax[0].grid()
-    ax[0].set_ylabel('MAW-3 d18O ‰')
+    ax[0].set_ylabel('MAW-3 δ¹⁸O ‰')
     ax[0].set_yticks(np.arange(-7, 0, 2))
 
     ax[1].plot(cave_record['age_BP'], cave_record['d13C'],
-               label='MAW-3 d13C', color=color2)
+               label=' MAW-3 δ¹³C', color=color2)
     ax[1].set_ylim(-5, 4)
+    ax[1].invert_yaxis()
     ax[1].grid()
-    ax[1].set_ylabel('MAW-3 d13C ‰')
+    ax[1].set_ylabel('MAW-3 δ¹³C')
     ax[1].set_yticks(np.arange(-4, 4, 2))
 
-    ax[2].plot(ngrip_small['age_BP'], ngrip_small['d18O'],
-               label='NGRIP d18O', color=color3)
-    ax[2].set_ylim(-52, -33)
+    ax[2].scatter(hulu_small['age_BP'], hulu_small['d18O'],
+                  label='NGRIP d18O', color=color3, s=5)
+    # ax[2].set_ylim(-52, -33)
     ax[2].grid()
-    ax[2].set_ylabel('NGRIP d18O ‰')
-    ax[2].set_xlabel('Age (Years BP)')
-    ax[2].set_yticks(np.arange(-48, -32, 4))
+    ax[2].invert_yaxis()
+    ax[2].set_ylabel('Hulu δ¹⁸O ‰ ')
+    ax[2].set_yticks(np.arange(-8, -6, 1))
+
+    ax[3].plot(ngrip_small['age_BP'], ngrip_small['d18O'],
+               label='NGRIP d18O', color=color4)
+    ax[3].set_ylim(-52, -33)
+    ax[3].grid()
+    ax[3].set_ylabel('NGRIP δ¹⁸O ‰')
+    ax[3].set_xlabel('Age (Years BP)')
+    ax[3].set_yticks(np.arange(-48, -32, 4))
 
     ax[0].set_title('Comparison of Speleothem Proxies with NGRIP d18O')
     plt.show()
@@ -214,19 +246,19 @@ def compare_stals(records_clean):
     fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
 
     ax1.plot(maw_3_data['age_BP'], maw_3_data['d18O'], color='blue',
-             label='MAW-3 d18O')
-    ax1.plot(ch1_data['age_BP'], ch1_data['d18O'], color='red',
-             label='CH1 d18O')
+             label='MAW-3 δ¹⁸O', alpha=0.5)
+    ax1.scatter(ch1_data['age_BP'], ch1_data['d18O'], color='red',
+                label='CH1 δ¹⁸O', s=1)
     ax1.legend()
 
     ax2.plot(maw_3_data['age_BP'], maw_3_data['d13C'], color='green',
-             label='MAW-3 d13C')
-    ax2.plot(ch1_data['age_BP'], ch1_data['d13C'], color='red',
-             label='CH1 d13C')
+             label='MAW-3 δ¹³C', alpha=0.5)
+    ax2.scatter(ch1_data['age_BP'], ch1_data['d13C'], color='red',
+                label='CH1 δ¹³C', s=1)
     ax2.legend()
 
-    ax1.set_ylabel('d18O (‰)')
-    ax2.set_ylabel('d13C (‰)')
+    ax1.set_ylabel('δ¹⁸O (‰)')
+    ax2.set_ylabel('δ¹³C (‰)')
     ax1.set_title('Stable Isotope Information from Different Speleothems')
     ax2.set_xlabel('Age BP')
     plt.grid()
@@ -253,17 +285,18 @@ def main():
     # plt.title('Autocorrelation of d13C')
 
     # Let's try to find the actual peak
-    corr_range = [records['maw_3_down']['d18O'].autocorr(lag) for lag in range(100, 200)]
-    max_corr = down_period * (corr_range.index(max(corr_range)) + 100)
-    print(f'Max autocorrelation at {max_corr} year period')
+    # corr_range = [records['maw_3_down']['d18O'].autocorr(lag) for lag in range(100, 200)]
+    # max_corr = down_period * (corr_range.index(max(corr_range)) + 100)
+    # print(f'Max autocorrelation at {max_corr} year period')
 
     # Comapre to NGRIP
-    compare_records(records['maw_3_proxy'], records['ngrip'], how='stagger')
+    compare_records(records['maw_3_proxy'], records['ngrip'], records['hulu'],
+                    how='stagger', since=40000)
 
     # Downsampled for input to matlab- this will be out actual CWT test
     # as the defauly python ones are lacking
     records['maw_3_down'].to_csv('internal_excel_sheets/filled_seb_runs/' +
-                                 'MAW-3-downsample.csv', index=False)
+                                  'MAW-3-downsample.csv', index=False)
 
     # Let's create a synthesis record containing both CH1 and MAW-3
     # We can repeat the more useful analysis (basically the wavelet transform)

@@ -83,8 +83,8 @@ def plot_irms(df, info='depth'):
     color1 = plt.cm.viridis(0)
     color2 = plt.cm.viridis(0.5)
 
-    ax1.plot(df[info], df['d18O'], color=color1)
-    ax2.plot(df[info], df['d13C'], color=color2)
+    ax1.scatter(df[info], df['d18O'], color=color1, s=0.9)
+    ax2.scatter(df[info], df['d13C'], color=color2, s=0.9)
 
     ax1.set_ylabel('CH1 d18O (‰)')
     ax2.set_ylabel('CH1 d13C (‰)')
