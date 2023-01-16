@@ -21,4 +21,3 @@ pbaspect([1.8 1 1])
 AX = gca;
 AX.YTickLabelMode = "auto";
 AX.YTick = freq;
-

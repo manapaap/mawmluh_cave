@@ -26,7 +26,6 @@ def load_data(clean=True, filter_year='40000'):
 
     Time to add in  CH1!
     """
-    global records
     maw_3_proxy = pd.read_csv('internal_excel_sheets/filled_seb_runs/' +
                               'MAW-3-filled-AGES.csv')
     ch1_proxy = pd.read_csv('internal_excel_sheets/filled_seb_runs/' +
@@ -171,34 +170,33 @@ def staggered_plot(cave_record, ngrip_small, hulu_small):
     Plots the records but in a staggered fashion
     """
     fig, ax = plt.subplots(4, 1, sharex=True)
-    fig.set_size_inches(10, 5)
+    fig.set_size_inches(10, 8)
     fig.subplots_adjust(hspace=0)
     plt.tight_layout()
 
-    color1 = plt.cm.viridis(0)
-    color2 = plt.cm.viridis(0.5)
-    color3 = plt.cm.viridis(0.65)
-    color4 = plt.cm.viridis(0.9)
+    color1 = plt.cm.viridis(0.5)
+    color2 = plt.cm.viridis(0)
+    color3 = plt.cm.viridis(0.7)
+    color4 = plt.cm.viridis(0.95)
 
-    ax[0].plot(cave_record['age_BP'], cave_record['d18O'],
+    ax[1].plot(cave_record['age_BP'], cave_record['d18O'],
                label='MAW-3 d18O', color=color1)
-    ax[0].set_ylim(-8, -0.5)
-    ax[0].invert_yaxis()
-    ax[0].grid()
-    ax[0].set_ylabel('MAW-3 δ¹⁸O ‰')
-    ax[0].set_yticks(np.arange(-7, 0, 2))
-
-    ax[1].plot(cave_record['age_BP'], cave_record['d13C'],
-               label=' MAW-3 δ¹³C', color=color2)
-    ax[1].set_ylim(-5, 4)
+    ax[1].set_ylim(-8, -0.5)
     ax[1].invert_yaxis()
     ax[1].grid()
-    ax[1].set_ylabel('MAW-3 δ¹³C')
-    ax[1].set_yticks(np.arange(-4, 4, 2))
+    ax[1].set_ylabel('MAW-3 δ¹⁸O ‰')
+    ax[1].set_yticks(np.arange(-7, 0, 2))
 
-    ax[2].scatter(hulu_small['age_BP'], hulu_small['d18O'],
-                  label='NGRIP d18O', color=color3, s=5)
-    # ax[2].set_ylim(-52, -33)
+    ax[0].plot(cave_record['age_BP'], cave_record['d13C'],
+               label=' MAW-3 δ¹³C', color=color2)
+    ax[0].set_ylim(-5, 4)
+    ax[0].invert_yaxis()
+    ax[0].grid()
+    ax[0].set_ylabel('MAW-3 δ¹³C')
+    ax[0].set_yticks(np.arange(-4, 4, 2))
+
+    ax[2].plot(hulu_small['age_BP'], hulu_small['d18O'],
+               label='NGRIP d18O', color=color3)
     ax[2].grid()
     ax[2].invert_yaxis()
     ax[2].set_ylabel('Hulu δ¹⁸O ‰ ')
@@ -212,7 +210,7 @@ def staggered_plot(cave_record, ngrip_small, hulu_small):
     ax[3].set_xlabel('Age (Years BP)')
     ax[3].set_yticks(np.arange(-48, -32, 4))
 
-    ax[0].set_title('Comparison of Speleothem Proxies with NGRIP d18O')
+    ax[0].set_title('Comparison of Speleothem Proxies with NGRIP δ¹⁸O')
     plt.show()
 
 
@@ -268,7 +266,11 @@ def compare_stals(records_clean):
 def main():
     down_period = 20
 
-    records = load_data(clean=True, filter_year='40000')
+    records = load_data(clean=True, filter_year='45000')
+
+    # Remove the duplicates it is finding
+    records['maw_3_clean'].drop_duplicates(subset='age_BP', inplace=True)
+
     records['maw_3_down'] = downsample(records['maw_3_clean'], down_period)
 
     # Let's plot a power spectral density
@@ -290,8 +292,8 @@ def main():
     # print(f'Max autocorrelation at {max_corr} year period')
 
     # Comapre to NGRIP
-    compare_records(records['maw_3_proxy'], records['ngrip'], records['hulu'],
-                    how='stagger', since=40000)
+    compare_records(records['maw_3_clean'], records['ngrip'], records['hulu'],
+                    how='stagger', since=43000)
 
     # Downsampled for input to matlab- this will be out actual CWT test
     # as the defauly python ones are lacking
