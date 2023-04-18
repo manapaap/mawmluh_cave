@@ -64,9 +64,9 @@ def bright_depth_plot(ch1_info, min_d=0, max_d=400):
 
     # Pixel brightness
     axs[0].plot(ch1_info['all']['top_dist_mm'], ch1_info['all']['Gray_Value'])
-    axs[0].set_ylabel('Pixel Brightness')
+    axs[0].set_ylabel('Pixel Grey Value')
     axs[0].grid()
-    axs[0].set_title('Pixel Brightnes Vs. Depth')
+    axs[0].set_title('Pixel Darkness Vs. Depth')
     axs[0].set_xlim(min_d, max_d)
 
     # d18O values
@@ -86,7 +86,7 @@ def bright_age_plot(ch1_info, min_a=28000, max_a=35000):
 
     # Pixel brightness
     axs[0].plot(ch1_info['dated']['age_BP'], ch1_info['dated']['Gray_Value'])
-    axs[0].set_ylabel('Pixel Brightness')
+    axs[0].set_ylabel('Pixel Grey Value')
     axs[0].grid()
     axs[0].set_title('Pixel Brightness vs. Age')
     axs[0].set_xlim(min_a, max_a)
@@ -116,4 +116,4 @@ if __name__ == '__main__':
     ch1_info['dated'] = ch1_info['dated'].groupby('age_BP',
                                                   as_index=False).mean()
 
-    bright_age_plot(ch1_info, min_a=29000, max_a=34250)
+    bright_age_plot(ch1_info, min_a=28000, max_a=32000)

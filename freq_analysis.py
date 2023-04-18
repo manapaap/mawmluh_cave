@@ -9,11 +9,10 @@ fourier and wavelet transform
 import pywt
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.fft import fft
 from scipy.interpolate import interp1d
 import pandas as pd
 from os import chdir
-from matplotlib import ticker
+from scipy.signal import find_peaks
 
 
 # chdir('C:/Users/Aakas/Documents/School/Oster_lab/programs')
@@ -171,8 +170,8 @@ def staggered_plot(cave_record, ngrip_small, hulu_small):
     """
     fig, ax = plt.subplots(4, 1, sharex=True)
     fig.set_size_inches(10, 8)
-    fig.subplots_adjust(hspace=0)
     plt.tight_layout()
+    plt.subplots_adjust(hspace=0)
 
     color1 = plt.cm.viridis(0.5)
     color2 = plt.cm.viridis(0)
@@ -244,16 +243,16 @@ def compare_stals(records_clean):
     fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
 
     ax1.plot(maw_3_data['age_BP'], maw_3_data['d18O'], color='blue',
-             label='MAW-3 δ¹⁸O', alpha=0.5)
+             label='MAW-3', alpha=0.5)
     ax1.scatter(ch1_data['age_BP'], ch1_data['d18O'], color='red',
-                label='CH1 δ¹⁸O', s=1)
-    ax1.legend()
+                label='CH1', s=1)
+    ax1.legend(loc='upper right')
 
     ax2.plot(maw_3_data['age_BP'], maw_3_data['d13C'], color='green',
-             label='MAW-3 δ¹³C', alpha=0.5)
+             label='MAW-3', alpha=0.5)
     ax2.scatter(ch1_data['age_BP'], ch1_data['d13C'], color='red',
-                label='CH1 δ¹³C', s=1)
-    ax2.legend()
+                label='CH1', s=1)
+    ax2.legend(loc='upper right')
 
     ax1.set_ylabel('δ¹⁸O (‰)')
     ax2.set_ylabel('δ¹³C (‰)')
@@ -263,10 +262,64 @@ def compare_stals(records_clean):
     ax1.grid()
 
 
-def main():
-    down_period = 20
+def compare_stals_2(records_clean):
+    """
+    Plots the data from CH1 and MAW-3 in a staaggered manner for comparision
+    """
+    ch1_data = records_clean.query('stal == "CH1"')
+    fig, ax = plt.subplots(4, 1, sharex=True)
+    fig.subplots_adjust(hspace=0)
+    plt.tight_layout()
 
-    records = load_data(clean=True, filter_year='45000')
+    ch1_max = ch1_data['age_BP'].max()
+    ch1_min = ch1_data['age_BP'].min()
+
+    maw_3_data = records_clean.query('stal == "MAW-3"')
+    maw_3_data = maw_3_data.query(f'age_BP > {ch1_min} & age_BP < {ch1_max}')
+
+    color1 = plt.cm.viridis(0.5)
+    color2 = plt.cm.viridis(0)
+    color3 = plt.cm.viridis(0.7)
+    color4 = plt.cm.viridis(0.95)
+
+    ax[0].plot(maw_3_data['age_BP'], maw_3_data['d18O'],
+               label='MAW-3 d18O', color=color1)
+    ax[0].set_ylim(-4, 0)
+    ax[0].grid()
+    ax[0].set_ylabel('MAW-3 δ¹⁸O')
+    ax[0].set_yticks(np.arange(-4, 0, 1))
+
+    ax[1].plot(ch1_data['age_BP'], ch1_data['d18O'],
+               label='CH1 d18O', color=color2)
+    ax[1].grid()
+    ax[1].set_ylim(-4, 0)
+    ax[1].set_ylabel('CH1 δ¹⁸O')
+    ax[1].set_yticks(np.arange(-4, 0, 1))
+
+    ax[2].plot(maw_3_data['age_BP'], maw_3_data['d13C'],
+               label='CH1 d18O', color=color3)
+    ax[2].grid()
+    ax[2].set_ylabel('MAW-3 δ¹³C')
+    ax[2].set_ylim(-1, 6)
+    ax[2].set_yticks(np.arange(-1, 6, 2))
+
+    ax[3].plot(ch1_data['age_BP'], ch1_data['d13C'],
+               label='CH1 d18O', color=color4)
+    ax[3].grid()
+    ax[3].set_ylabel('CH1 δ¹³C')
+    ax[3].set_xlabel('Age (Years BP)')
+    ax[3].set_ylim(-1, 6)
+    ax[3].set_yticks(np.arange(-1, 6, 2))
+
+    ax[0].set_title('Comparison of CH1 and MAW-3')
+    plt.show()
+
+
+def main():
+    global records
+    down_period = 15
+
+    records = load_data(clean=True, filter_year='46000')
 
     # Remove the duplicates it is finding
     records['maw_3_clean'].drop_duplicates(subset='age_BP', inplace=True)
@@ -287,13 +340,14 @@ def main():
     # plt.title('Autocorrelation of d13C')
 
     # Let's try to find the actual peak
-    # corr_range = [records['maw_3_down']['d18O'].autocorr(lag) for lag in range(100, 200)]
-    # max_corr = down_period * (corr_range.index(max(corr_range)) + 100)
-    # print(f'Max autocorrelation at {max_corr} year period')
+    corr_range = [records['maw_3_down']['d18O'].autocorr(lag) for lag in range(100, 600)]
+    peaks, _ = find_peaks(corr_range, distance=100)
+    max_corr = down_period * (corr_range.index(max(corr_range[:200])) + 100)
+    print(f'Max autocorrelation at {max_corr} year period')
 
     # Comapre to NGRIP
     compare_records(records['maw_3_clean'], records['ngrip'], records['hulu'],
-                    how='stagger', since=43000)
+                    how='stagger', since=46000)
 
     # Downsampled for input to matlab- this will be out actual CWT test
     # as the defauly python ones are lacking
