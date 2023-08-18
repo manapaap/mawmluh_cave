@@ -13,6 +13,7 @@ from scipy.interpolate import interp1d
 import pandas as pd
 from os import chdir
 from scipy.signal import find_peaks
+import pickle
 
 
 # chdir('C:/Users/Aakas/Documents/School/Oster_lab/programs')
@@ -36,6 +37,41 @@ def load_data(clean=True, filter_year='40000'):
                                sheet_name='NGRIP-2 d18O and Dust',
                                names=['depth_mm', 'd18O', 'dust',
                                       'age_BP', 'age_error'])
+
+    vostok_data = pd.read_excel('external_excel_sheets/totalvosdata.xls',
+                                sheet_name='Vostok',
+                                skiprows=1,
+                                names=['depth_m', 'ice_age_ka', 'd18O', 
+                                       'dust', 'gas_age_ka', 'CO2', 'CH4'])
+    vostok_data['age_BP'] = vostok_data['ice_age_ka'] * 1000
+
+    ball_gown = pd.read_csv('external_excel_sheets/' +
+                            'ball_gown_cave.txt',
+                             skiprows=145,
+                             names=['stalagmite', 'depth_mm', 'age_BP',
+                                    'd18O', 'd13C'],
+                             sep='	')
+    ball_gown.sort_values(by='age_BP', inplace=True)
+    ball_gown.reset_index(inplace=True, drop=True)
+
+    dome_fuji = pd.read_excel('external_excel_sheets/df2012isotope-temperature.xls',
+                               sheet_name='DF1 Isotopes',
+                               skiprows=11,
+                               names=['ID', 'top_m', 'bottom_m', 'center_m',
+                                      'age_ka', 'd18O', 'dD', 'd_excess'])
+    dome_fuji['age_BP'] = dome_fuji['age_ka'] * 1000
+    dome_fuji['age_BP'] = dome_fuji['age_BP'] - 50
+
+    wais = pd.read_excel('external_excel_sheets/wais_data.xls',
+                         sheet_name='WDC d18O',
+                                skiprows=48,
+                                names=['tube_num', 'depth_m', 'depth_b_m',
+                                       'd18O', 'age_top', 'age_bottom'])
+    wais['age_BP'] = 1000 * ((wais['age_top'] + wais['age_bottom']) / 2)
+
+    epica_t = pd.read_csv('external_excel_sheets/buizert2021edc-temp.txt',
+                          skiprows=122, sep='	',
+                          names=['age_BP', 't_anom', 't_high', 't_low'])
 
     hulu_data = pd.DataFrame()
     # Need to do bullshit for hulu cave as the file is badly formatted
@@ -62,7 +98,12 @@ def load_data(clean=True, filter_year='40000'):
                'ch1_proxy': ch1_proxy,
                'maw_3_proxy': maw_3_proxy,
                'ngrip': ngrip_data,
-               'hulu': hulu_data}
+               'hulu': hulu_data,
+               'vostok': vostok_data,
+               'ball_gown': ball_gown,
+               'dome_fuji': dome_fuji,
+               'wais': wais,
+               'epica_t': epica_t}
 
     return records
 
@@ -107,7 +148,7 @@ def fourier(df, fs=20, proxy='d18O', fig=1):
     plt.show()
 
 
-def compare_records(cave_record, ngrip_record, hulu, since=40000, how='layer'):
+def compare_records(cave_record, ice_record, cave_2, since, how='north', prox='d18O'):
     """
     Plots the two records side by side to allow for comparisions
     """
@@ -116,52 +157,15 @@ def compare_records(cave_record, ngrip_record, hulu, since=40000, how='layer'):
     max_year = cave_record['age_BP'].iloc[-1]
     min_year = cave_record['age_BP'].iloc[1]
 
-    ngrip_small = ngrip_record.query(f'age_BP <= {max_year} & ' +
+    ice_small = ice_record.query(f'age_BP <= {max_year} & ' +
                                      f'age_BP >= {min_year}')
-    hulu_small = hulu.query(f'age_BP <= {max_year} & ' +
+    cave_2_small = cave_2.query(f'age_BP <= {max_year} & ' +
                             f'age_BP >= {min_year}')
 
-    if how == 'layer':
-        layered_plot(cave_record, ngrip_small)
+    if how == 'north':
+        staggered_plot(cave_record, ice_small, cave_2_small)
     else:
-        staggered_plot(cave_record, ngrip_small, hulu_small)
-
-
-def layered_plot(cave_record, ngrip_small):
-    """
-    Plots the records overlaid with each other
-    """
-    fig, ax = plt.subplots()
-    twin1 = ax.twinx()
-    twin2 = ax.twinx()
-    twin2.spines['right'].set_position(("axes", 1.15))
-
-    color1 = plt.cm.viridis(0)
-    color2 = plt.cm.viridis(0.5)
-    color3 = plt.cm.viridis(.9)
-
-    d18O_green, = ax.plot(ngrip_small['age_BP'], ngrip_small['d18O'],
-                          label='NGRIP d18O', color=color3)
-    d18O, = twin1.plot(cave_record['age_BP'], cave_record['d18O'],
-                       label='MAW-3 d18O', color=color1)
-    d13C, = twin2.plot(cave_record['age_BP'], cave_record['d13C'],
-                       label='MAW-3 d13C', color=color2)
-
-    ax.set_xlim()
-    ax.grid()
-    ax.set_ylabel('NGRIP d18O (‰)')
-    twin1.set_ylabel('MAW-3 d18O (‰)')
-    twin2.set_ylabel('MAW-3 d13C (‰)')
-    ax.set_xlabel('Age (Years BP)')
-    ax.set_title('MAW-3 Comparision with NGRIP Record')
-
-    ax.set_ylim(-55, -30)
-    twin1.set_ylim(-12, 0)
-    twin2.set_ylim(-5, 4)
-
-    ax.legend(handles=[d18O_green, d13C, d18O], loc='best')
-
-    plt.show()
+        staggered_plot_south(cave_record, ice_small, cave_2_small, prox)
 
 
 def staggered_plot(cave_record, ngrip_small, hulu_small):
@@ -210,6 +214,56 @@ def staggered_plot(cave_record, ngrip_small, hulu_small):
     ax[3].set_yticks(np.arange(-48, -32, 4))
 
     ax[0].set_title('Comparison of Speleothem Proxies with NGRIP δ¹⁸O')
+    plt.show()
+
+
+def staggered_plot_south(cave_record, vostok_small, ball_small, prox):
+    """
+    Plots the speleothem record, comparing it to records from the
+    southern hemisphere
+    """
+    fig, ax = plt.subplots(4, 1, sharex=True)
+    fig.set_size_inches(10, 8)
+    plt.tight_layout()
+    plt.subplots_adjust(hspace=0)
+
+    color1 = plt.cm.viridis(0.5)
+    color2 = plt.cm.viridis(0)
+    color3 = plt.cm.viridis(0.7)
+    color4 = plt.cm.viridis(0.95)
+
+    ax[1].plot(cave_record['age_BP'], cave_record['d18O'],
+               label='MAW-3 d18O', color=color1)
+    ax[1].set_ylim(-8, -0.5)
+    ax[1].invert_yaxis()
+    ax[1].grid()
+    ax[1].set_ylabel('MAW-3 δ¹⁸O ‰')
+    ax[1].set_yticks(np.arange(-7, 0, 2))
+
+    ax[0].plot(cave_record['age_BP'], cave_record['d13C'],
+               label=' MAW-3 δ¹³C', color=color2)
+    ax[0].set_ylim(-5, 4)
+    ax[0].invert_yaxis()
+    ax[0].grid()
+    ax[0].set_ylabel('MAW-3 δ¹³C')
+    ax[0].set_yticks(np.arange(-4, 4, 2))
+
+    ax[2].plot(ball_small['age_BP'], ball_small['d18O'],
+               label='NGRIP d18O', color=color3)
+    ax[2].grid()
+    ax[2].invert_yaxis()
+    ax[2].set_ylabel('Ball Gown δ¹⁸O ‰ ')
+    # ax[2].set_yticks(np.arange(-8, -6, 1))
+
+    ax[3].plot(vostok_small['age_BP'], vostok_small[prox],
+               label='WAIS d18O', color=color4)
+    # ax[3].set_ylim(-52, -33)
+    ax[3].grid()
+    ax[3].set_ylabel('WAIS d18O')
+    ax[3].set_xlabel('Age (Years BP)')
+    # ax[3].set_yticks(np.arange(-48, -32, 4))
+
+    ax[0].set_title('Comparison of Speleothem Proxies with WAIS d18O')
     plt.show()
 
 
@@ -347,7 +401,12 @@ def main():
 
     # Comapre to NGRIP
     compare_records(records['maw_3_clean'], records['ngrip'], records['hulu'],
-                    how='stagger', since=46000)
+                    how='north', since=46000)
+
+    # Compare to South Pole
+    compare_records(records['maw_3_clean'], records['wais'],
+                    records['ball_gown'], how='south', since=46000,
+                    prox='d18O')
 
     # Downsampled for input to matlab- this will be out actual CWT test
     # as the defauly python ones are lacking
@@ -357,13 +416,13 @@ def main():
     # Let's create a synthesis record containing both CH1 and MAW-3
     # We can repeat the more useful analysis (basically the wavelet transform)
     # On this combined record
-    records['ALL'] = merge_records(records['maw_3_proxy'],
-                                   records['ch1_proxy'])
-    records['ALL_clean'] = records['ALL'].dropna(subset=['age_BP',
-                                                         'd18O', 'd13C'])
+    # records['ALL'] = merge_records(records['maw_3_proxy'],
+    #                               records['ch1_proxy'])
+    # records['ALL_clean'] = records['ALL'].dropna(subset=['age_BP',
+    #                                                      'd18O', 'd13C'])
 
     # We must compare the differences in age over the specified age
-    compare_stals(records['ALL_clean'])
+    # compare_stals(records['ALL_clean'])
 
 
 if __name__ == '__main__':
