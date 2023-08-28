@@ -14,6 +14,7 @@ import pandas as pd
 from os import chdir
 from scipy.signal import find_peaks
 import pickle
+from scipy import signal
 
 
 # chdir('C:/Users/Aakas/Documents/School/Oster_lab/programs')
@@ -377,8 +378,10 @@ def main():
 
     # Remove the duplicates it is finding
     records['maw_3_clean'].drop_duplicates(subset='age_BP', inplace=True)
-
+    # Remove this damn outlier
+    records['maw_3_clean'].drop(5651, inplace=True)
     records['maw_3_down'] = downsample(records['maw_3_clean'], down_period)
+    # records['maw_3_down']['d18O'] = signal.detrend(records['maw_3_down']['d18O'])
 
     # Let's plot a power spectral density
     # fourier(records['maw_3_down'], proxy='d18O', fig=1, fs=down_period)
