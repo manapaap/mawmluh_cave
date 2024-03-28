@@ -6,22 +6,19 @@ fourier and wavelet transform
 @author: Aakas
 """
 
-import pywt
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import interp1d
 import pandas as pd
 from os import chdir
 from scipy.signal import find_peaks
-import pickle
-from scipy import signal
 
 
 # chdir('C:/Users/Aakas/Documents/School/Oster_lab/programs')
 chdir('C:/Users/Aakas/Documents/School/Oster_lab/')
 
 
-def load_data(clean=True, filter_year='40000'):
+def load_data(filter_year='46000'):
     """
     Loats MAW-3 record (and eventually CH1 too!)
 
@@ -68,6 +65,8 @@ def load_data(clean=True, filter_year='40000'):
                                 skiprows=48,
                                 names=['tube_num', 'depth_m', 'depth_b_m',
                                        'd18O', 'age_top', 'age_bottom'])
+    # Remove some weird outliers
+    wais = wais.query('d18O < 1000')
     wais['age_BP'] = 1000 * ((wais['age_top'] + wais['age_bottom']) / 2)
 
     epica_t = pd.read_csv('external_excel_sheets/buizert2021edc-temp.txt',
@@ -90,10 +89,15 @@ def load_data(clean=True, filter_year='40000'):
     hulu_data['d18O'] = pd.to_numeric(hulu_data['d18O'])
     hulu_data['age_BP'] = pd.to_numeric(hulu_data['age_BP'])
     hulu_data.sort_values(by='age_BP', inplace=True)
+    
+    # Arabian sediment record
+    arabia = pd.read_csv('external_excel_sheets/arabian_sediment.txt',
+                         skiprows=111,
+                         names=['depth_m', 'age_2000', 'refl'], sep='\t')
+    arabia['age_BP'] = arabia['age_2000'] - 50
 
-    if clean:
-        maw_3_clean = maw_3_proxy.query(f'age_BP <= {filter_year}')
-        maw_3_clean = maw_3_clean.dropna(subset=['age_BP', 'd18O', 'd13C'])
+    maw_3_clean = maw_3_proxy.query(f'age_BP <= {filter_year}')
+    maw_3_clean = maw_3_clean.dropna(subset=['age_BP', 'd18O', 'd13C'])
 
     records = {'maw_3_clean': maw_3_clean,
                'ch1_proxy': ch1_proxy,
@@ -104,6 +108,7 @@ def load_data(clean=True, filter_year='40000'):
                'ball_gown': ball_gown,
                'dome_fuji': dome_fuji,
                'wais': wais,
+               'arabia': arabia,
                'epica_t': epica_t}
 
     return records
@@ -174,8 +179,9 @@ def staggered_plot(cave_record, ngrip_small, hulu_small):
     Plots the records but in a staggered fashion
     """
     fig, ax = plt.subplots(4, 1, sharex=True)
+    plt.subplots_adjust(top=0.7)
     fig.set_size_inches(10, 8)
-    plt.tight_layout()
+    # plt.tight_layout()
     plt.subplots_adjust(hspace=0)
 
     color1 = plt.cm.viridis(0.5)
@@ -190,6 +196,9 @@ def staggered_plot(cave_record, ngrip_small, hulu_small):
     ax[1].grid()
     ax[1].set_ylabel('MAW-3 δ¹⁸O ‰')
     ax[1].set_yticks(np.arange(-7, 0, 2))
+    ax[1].spines[['top']].set_visible(False)
+    ax[1].yaxis.tick_right()
+    ax[1].yaxis.set_label_position("right")
 
     ax[0].plot(cave_record['age_BP'], cave_record['d13C'],
                label=' MAW-3 δ¹³C', color=color2)
@@ -205,6 +214,7 @@ def staggered_plot(cave_record, ngrip_small, hulu_small):
     ax[2].invert_yaxis()
     ax[2].set_ylabel('Hulu δ¹⁸O ‰ ')
     ax[2].set_yticks(np.arange(-8, -6, 1))
+    ax[2].spines[['top']].set_visible(False)
 
     ax[3].plot(ngrip_small['age_BP'], ngrip_small['d18O'],
                label='NGRIP d18O', color=color4)
@@ -213,8 +223,12 @@ def staggered_plot(cave_record, ngrip_small, hulu_small):
     ax[3].set_ylabel('NGRIP δ¹⁸O ‰')
     ax[3].set_xlabel('Age (Years BP)')
     ax[3].set_yticks(np.arange(-48, -32, 4))
+    ax[3].spines[['top']].set_visible(False)
+    ax[3].yaxis.tick_right()
+    ax[3].yaxis.set_label_position("right")
+    
 
-    ax[0].set_title('Comparison of Speleothem Proxies with NGRIP δ¹⁸O')
+    ax[0].set_title('Proxy Stack')
     plt.show()
 
 
@@ -249,14 +263,14 @@ def staggered_plot_south(cave_record, vostok_small, ball_small, prox):
     ax[0].set_ylabel('MAW-3 δ¹³C')
     ax[0].set_yticks(np.arange(-4, 4, 2))
 
-    ax[2].plot(ball_small['age_BP'], ball_small['d18O'],
+    ax[2].plot(ball_small['age_BP'], ball_small[prox],
                label='NGRIP d18O', color=color3)
     ax[2].grid()
     ax[2].invert_yaxis()
-    ax[2].set_ylabel('Ball Gown δ¹⁸O ‰ ')
+    ax[2].set_ylabel('Arabia Sed. Refl.')
     # ax[2].set_yticks(np.arange(-8, -6, 1))
 
-    ax[3].plot(vostok_small['age_BP'], vostok_small[prox],
+    ax[3].plot(vostok_small['age_BP'], vostok_small['d18O'],
                label='WAIS d18O', color=color4)
     # ax[3].set_ylim(-52, -33)
     ax[3].grid()
@@ -372,9 +386,9 @@ def compare_stals_2(records_clean):
 
 def main():
     global records
-    down_period = 15
+    down_period = 20
 
-    records = load_data(clean=True, filter_year='46000')
+    records = load_data(filter_year='46000')
 
     # Remove the duplicates it is finding
     records['maw_3_clean'].drop_duplicates(subset='age_BP', inplace=True)
@@ -408,24 +422,16 @@ def main():
 
     # Compare to South Pole
     compare_records(records['maw_3_clean'], records['wais'],
-                    records['ball_gown'], how='south', since=46000,
-                    prox='d18O')
+                    records['arabia'], how='south', since=46000,
+                    prox='refl')
 
     # Downsampled for input to matlab- this will be out actual CWT test
     # as the defauly python ones are lacking
     records['maw_3_down'].to_csv('internal_excel_sheets/filled_seb_runs/' +
                                   'MAW-3-downsample.csv', index=False)
-
-    # Let's create a synthesis record containing both CH1 and MAW-3
-    # We can repeat the more useful analysis (basically the wavelet transform)
-    # On this combined record
-    # records['ALL'] = merge_records(records['maw_3_proxy'],
-    #                               records['ch1_proxy'])
-    # records['ALL_clean'] = records['ALL'].dropna(subset=['age_BP',
-    #                                                      'd18O', 'd13C'])
-
-    # We must compare the differences in age over the specified age
-    # compare_stals(records['ALL_clean'])
+    
+    records['maw_3_clean'].to_csv('internal_excel_sheets/filled_seb_runs/' +
+                                  'MAW-3-clean.csv', index=False)
 
 
 if __name__ == '__main__':
