@@ -73,22 +73,36 @@ def load_data(filter_year='46000'):
                           skiprows=122, sep='	',
                           names=['age_BP', 't_anom', 't_high', 't_low'])
 
-    hulu_data = pd.DataFrame()
-    # Need to do bullshit for hulu cave as the file is badly formatted
-    age = []
-    d18O = []
-    with open('external_excel_sheets/hulu_cave_d18O.txt') as file:
-        for count, line in enumerate(file.readlines()):
-            if count == 0:
-                continue
-            age.append(line[15:20].strip())
-            d18O.append(line[25:].strip())
+    # Old hulu data- let's try to link the unpublished record with this too
+    # hulu_old = pd.DataFrame()
+    # # Need to do bullshit for hulu cave as the file is badly formatted
+    # age = []
+    # d18O = []
+    # with open('external_excel_sheets/hulu_cave_d18O.txt') as file:
+    #     for count, line in enumerate(file.readlines()):
+    #         if count == 0:
+    #             continue
+    #         age.append(line[15:20].strip())
+    #         d18O.append(line[25:].strip())
 
-    hulu_data = pd.DataFrame({'age_BP': age,
-                              'd18O': d18O})
-    hulu_data['d18O'] = pd.to_numeric(hulu_data['d18O'])
-    hulu_data['age_BP'] = pd.to_numeric(hulu_data['age_BP'])
-    hulu_data.sort_values(by='age_BP', inplace=True)
+    # hulu_old = pd.DataFrame({'age_BP': age,
+    #                           'd18O': d18O})
+    # hulu_old['d18O'] = pd.to_numeric(hulu_old['d18O'])
+    # hulu_old['age_BP'] = pd.to_numeric(hulu_old['age_BP'])
+    # hulu_old.sort_values(by='age_BP', inplace=True)
+    
+    # Hulu has multiple speleothems that must be combined together
+    hulu_msl = pd.read_excel('external_excel_sheets/hulu_unpublished.xlsx', 
+                             skiprows=1, usecols='B,F', 
+                             names=['age_BP', 'd18O'], sheet_name='MSL')
+    hulu_msd = pd.read_excel('external_excel_sheets/hulu_unpublished.xlsx', 
+                             skiprows=1, usecols='B,F', 
+                             names=['age_BP', 'd18O'], sheet_name='MSD')
+    hulu_h82 = pd.read_excel('external_excel_sheets/hulu_unpublished.xlsx', 
+                             skiprows=1, usecols='B,F', 
+                             names=['age_BP', 'd18O'], sheet_name='H82')
+    hulu_data = pd.concat([hulu_msl, hulu_msd,
+                           hulu_h82]).sort_values(by='age_BP')
     
     # Arabian sediment record
     arabia = pd.read_csv('external_excel_sheets/arabian_sediment.txt',
@@ -96,12 +110,36 @@ def load_data(filter_year='46000'):
                          names=['depth_m', 'age_2000', 'refl'], sep='\t')
     arabia['age_BP'] = arabia['age_2000'] - 50
 
-    maw_3_clean = maw_3_proxy.query(f'age_BP <= {filter_year}')
-    maw_3_clean = maw_3_clean.dropna(subset=['age_BP', 'd18O', 'd13C'])
+    # maw_3_clean = maw_3_proxy.query(f'age_BP <= {filter_year}')
+    # maw_3_clean = maw_3_clean.dropna(subset=['age_BP', 'd18O', 'd13C'])
+    
+    
+    # Let's insert the new MAW-3 data here- need to combine d18O and d13C sheets
+    maw_3_d18O = pd.read_excel('internal_excel_sheets/filled_seb_runs/' +
+                              'MAW-3_am10_copra.xlsx', usecols='B:C,K', 
+                              names=['top_dist_mm', 'age_BP', 'd18O'], 
+                              sheet_name='d18O final',
+                              skiprows=68)
+    maw_3_d13C = pd.read_excel('internal_excel_sheets/filled_seb_runs/' +
+                              'MAW-3_am10_copra.xlsx', usecols='B:C,K', 
+                              names=['top_dist_mm', 'age_BP', 'd13C'], 
+                              sheet_name='d13C final',
+                              skiprows=68)
+    maw_3_clean = maw_3_d18O.merge(maw_3_d13C, on='age_BP', how='left')
+    
+    # "tidy" this and focus on good data region
+    maw_3_clean = maw_3_clean.query(f'age_BP <= {filter_year}')
+    # Remove the duplicates it is finding
+    # maw_3_clean.drop_duplicates(subset='age_BP', inplace=True)
+    
+    # Include the Jaglan et. al paper from 2021
+    maw_jag = pd.read_excel('external_excel_sheets/maw_jagalan.xlsx', 
+                            names=['top_dist_mm', 'age_BP', 'd18O', 'd13C'],
+                            sheet_name='Depth, Age, O & C isotope data')
 
     records = {'maw_3_clean': maw_3_clean,
                'ch1_proxy': ch1_proxy,
-               'maw_3_proxy': maw_3_proxy,
+               'maw_jag': maw_jag,
                'ngrip': ngrip_data,
                'hulu': hulu_data,
                'vostok': vostok_data,
@@ -390,10 +428,9 @@ def main():
 
     records = load_data(filter_year='46000')
 
-    # Remove the duplicates it is finding
-    records['maw_3_clean'].drop_duplicates(subset='age_BP', inplace=True)
-    # Remove this damn outlier
-    records['maw_3_clean'].drop(5651, inplace=True)
+    
+    # Remove this damn outlier (handled by seb already)
+    # records['maw_3_clean'].drop(5651, inplace=True)
     records['maw_3_down'] = downsample(records['maw_3_clean'], down_period)
     # records['maw_3_down']['d18O'] = signal.detrend(records['maw_3_down']['d18O'])
 

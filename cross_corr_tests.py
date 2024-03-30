@@ -80,83 +80,17 @@ def d_o_dates(min_date=27000, max_date=60000):
     return d_o_all, d_o_events, d_o_ng
 
 
-def smooth_full_ice(ngrip, wais, arab, min_age, max_age, period=25, fil_freq=1/500):
+def combine_mawmluh(records, cutoff=39000):
     """
-    Interpolates wais and ngrip to period and puts through a low pass filter 
-    to remove noise
-
-    returns pandas df containing the full arrays. The periods of intrest
-    to put min/max age are:
-
-    - all ngrip era as wais spans a longer time span (but has lower fs)
-    - youngest-2000 until oldest ngrip record (d-o events continue past ngrip)
-    - only during MIS 3 (25,000 to end of ngrip)
+    Combines the MAW-3 record with the Jaglan record at a defined cutoff year
     """
-    # Flip NGRIP for phase consistency with wais
-    ngrip = deepcopy(ngrip)
-    mean = ngrip['d18O'].mean()
-    ngrip['d18O'] *= -1
-    ngrip['d18O'] += 2 * mean
-
-    # Basically copying code from the 3-array version of this
-    func_ngrip = interp1d(ngrip['age_BP'], ngrip['d18O'])
-    func_wais = interp1d(wais['age_BP'], wais['d18O'])
-    func_arab = interp1d(arab['age_BP'], arab['refl'])
-
-    ages = np.arange(min_age, max_age, period)
-
-    ngrip = ngrip.query(f'{min_age} < age_BP < {max_age}')
-    wais = wais.query(f'{min_age} < age_BP < {max_age}')
-    arab = arab.query(f'{min_age} < age_BP < {max_age}')
-
-    new_ngrip = func_ngrip(ages)
-    new_wais = func_wais(ages)
-    new_arab = func_arab(ages)
-
-    # Pass through a low pass filter now
-    new_ngrip = butter_lowpass_filter(new_ngrip, fil_freq, 1/period, 2)
-    new_wais = butter_lowpass_filter(new_wais, fil_freq, 1/period, 2)
-    new_arab = butter_lowpass_filter(new_arab, fil_freq, 1/period, 2)
-
-    # Compare to the original record
-    fix, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True)
-    plt.suptitle('Original vs Interpolated Ice Records')
-
-    ax1.set_ylabel('NGRIP (Inverted)')
-    ax1.plot(ngrip['age_BP'], ngrip['d18O'], color='lightgreen')
-    ax1.plot(ages, new_ngrip, color='blue', alpha=0.5)
-    ax1.set_xlim(min_age, max_age)
-    ax1.grid()
-
-    ax2.set_ylabel('WAIS')
-    ax2.plot(wais['age_BP'], wais['d18O'], color='lightgreen')
-    ax2.plot(ages, new_wais, color='blue', alpha=0.5)
-    ax2.set_xlim(min_age, max_age)
-    ax2.grid()
+    maw_sliced = records['maw_3_clean'].query(f'age_BP < {cutoff}')
+    jag_sliced = records['maw_jag'].query(f'age_BP > {cutoff}')
     
-    ax3.set_ylabel('Arabia')
-    ax3.set_xlabel('Age BP')
-    ax3.plot(arab['age_BP'], arab['refl'], color='lightgreen')
-    ax3.plot(ages, new_arab, color='blue', alpha=0.5)
-    ax3.set_xlim(min_age, max_age)
-    ax3.grid()
-
-    # Normalize our arrays
-    new_ngrip = (new_ngrip - np.mean(new_ngrip)) / np.std(new_ngrip)
-    new_wais = (new_wais - np.mean(new_wais)) / np.std(new_wais)
-    new_arab = (new_arab - np.mean(new_arab)) / np.std(new_arab)
-
-    # Check if detrend in a second- will be more complicated
-    new_ngrip = signal.detrend(new_ngrip)
-    new_wais = signal.detrend(new_wais)
-    new_arab = signal.detrend(new_arab)
-
-    data = pd.DataFrame({'age_BP': ages,
-                         'ngrip': new_ngrip,
-                         'wais': new_wais,
-                         'arab': new_arab})
-
-    return data
+    combined = pd.concat([maw_sliced, jag_sliced]).drop(['top_dist_mm_x',
+                                                   'top_dist_mm_y',
+                                                   'top_dist_mm'], axis=1)
+    return combined.sort_values('age_BP')
     
 
 def plot_cross_corr(arrs, title='', period=25, filter_freq=1/500, plot=True):
@@ -166,7 +100,7 @@ def plot_cross_corr(arrs, title='', period=25, filter_freq=1/500, plot=True):
     
     plots the original and interpolated signals for continuity
     """
-    arr1, arr2, arr3, arr4 = arrs
+    arr1, arr2, arr3, arr4, arr5 = arrs
     # Flip NGRIP for consistency in phases
     arr2 = deepcopy(arr2)
     mean = arr2['d18O'].mean()
@@ -177,6 +111,7 @@ def plot_cross_corr(arrs, title='', period=25, filter_freq=1/500, plot=True):
     func_arr2 = interp1d(arr2['age_BP'], arr2['d18O'])
     func_arr3 = interp1d(arr3['age_BP'], arr3['d18O'])
     func_arr4 = interp1d(arr4['age_BP'], arr4['refl'])
+    func_arr5 = interp1d(arr5['age_BP'], arr5['d18O'])
 
     min_age, max_age = arr1['age_BP'].min(), arr1['age_BP'].max()
     ages = np.arange(min_age, max_age, period)
@@ -186,22 +121,25 @@ def plot_cross_corr(arrs, title='', period=25, filter_freq=1/500, plot=True):
     arr2 = arr2.query(f'{min_age} <= age_BP <= {max_age}')
     arr3 = arr3.query(f'{min_age} <= age_BP <= {max_age}')
     arr4 = arr4.query(f'{min_age} <= age_BP <= {max_age}')
+    arr5 = arr5.query(f'{min_age} <= age_BP <= {max_age}')
 
     new_arr1 = func_arr1(ages)
     new_arr2 = func_arr2(ages)
     # new_arr2_full = func_arr2(ages_2) I don't actually use this?
     new_arr3 = func_arr3(ages)
     new_arr4 = func_arr4(ages)
+    new_arr5 = func_arr5(ages)
 
     # Let's pass this through a low pass filter to remove noise
     new_arr1 = butter_lowpass_filter(new_arr1, filter_freq, 1/period, 8)
     new_arr2 = butter_lowpass_filter(new_arr2, filter_freq, 1/period, 8)
     new_arr3 = butter_lowpass_filter(new_arr3, filter_freq, 1/period, 8)
     new_arr4 = butter_lowpass_filter(new_arr4, filter_freq, 1/period, 8)
+    new_arr5 = butter_lowpass_filter(new_arr5, filter_freq, 1/period, 8)
 
     # First, compare the interpolation
     if plot:
-        fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, sharex=True)
+        fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(5, 1, sharex=True)
         fig.suptitle('Original vs. Interpolated d18O Record')
     
         ax1.set_ylabel('MAW-3')
@@ -228,24 +166,34 @@ def plot_cross_corr(arrs, title='', period=25, filter_freq=1/500, plot=True):
         ax4.plot(ages, new_arr4, color='blue', alpha=0.5)
         ax4.set_xlim(min_age, max_age)
         ax4.grid()
+        
+        ax5.set_ylabel('Hulu')
+        ax5.set_xlabel('Age BP')
+        ax5.plot(arr5['age_BP'], arr5['d18O'], color='lightgreen')
+        ax5.plot(ages, new_arr5, color='blue', alpha=0.5)
+        ax5.set_xlim(min_age, max_age)
+        ax5.grid()
 
     # Normalize our arrays
     new_arr1 = (new_arr1 - np.mean(new_arr1)) / np.std(new_arr1)
     new_arr2 = (new_arr2 - np.mean(new_arr2)) / np.std(new_arr2)
     new_arr3 = (new_arr3 - np.mean(new_arr3)) / np.std(new_arr3)
     new_arr4 = (new_arr4 - np.mean(new_arr4)) / np.std(new_arr4)
+    new_arr5 = (new_arr5 - np.mean(new_arr5)) / np.std(new_arr5)
 
     # Detrend our data
     new_arr1 = signal.detrend(new_arr1)
     new_arr2 = signal.detrend(new_arr2)
     new_arr3 = signal.detrend(new_arr3)
     new_arr4 = signal.detrend(new_arr4)
+    new_arr5 = signal.detrend(new_arr5)
 
     data = pd.DataFrame({'age_BP': ages,
                          'maw': new_arr1,
                          'ngrip': new_arr2,
                          'wais': new_arr3,
-                         'arabia': new_arr4})
+                         'arabia': new_arr4,
+                         'hulu': new_arr5})
 
     return data
 
@@ -345,149 +293,11 @@ def lag_finder_full(y1, y2, period, plot=True):
         return lag_len
 
 
-def epoch_anal(prox_data, d_o_events, period, overlap):
-    """
-    Does an epoch analysis of the proxy records by finding correlation 
-    over the course of each D-O event
-    """
-    lag_df = pd.DataFrame(columns=['MAW-NGRIP', 'MAW-WAIS', 'NGRIP-WAIS'])
-
-    for event, year in d_o_events.items():
-        # Get starting year and handle exception for starting event
-        if event + 1 in list(d_o_events.keys()):
-            # 500 year overlap
-            start = d_o_events[event + 1] + overlap
-        else:
-            start = prox_data['age_BP'].iloc[-1]
-        # Get ending year and handle exception for ending event
-        if event == min(list(d_o_events.keys())):
-            end = prox_data['age_BP'].iloc[0]
-        else:
-            # Again, 500 year overlap when possible
-            end = year - overlap
-
-        # Get the actual indices we need
-        idx_start = find_nearest(prox_data['age_BP'], start)
-        idx_end = find_nearest(prox_data['age_BP'], end)
-
-        rel_data = prox_data.iloc[idx_end: idx_start]
-        # Seems to work to slice our indices as needed!
-        # Let's calculate the lags
-        lag_dict = {'MAW-NGRIP': lag_finder_full(rel_data.maw, rel_data.ngrip, 
-                                            period, False),
-                    'MAW-WAIS': lag_finder_full(rel_data.maw, rel_data.wais,
-                                           period, False),
-                    'NGRIP-WAIS': lag_finder_full(rel_data.ngrip, rel_data.wais,
-                                             period, False)}
-        lag_dict = pd.DataFrame(lag_dict, index=[event])
-        lag_df = pd.concat([lag_df, lag_dict])
-
-    return lag_df
-
-
-def epoch_chunks(prox_data, d_o_events, overlap=500):
-    """
-    Just returns the chunked df rather than the actual lag stats
-    """
-    chunks = {event: None for event in d_o_events.keys()}
-
-    for event, year in d_o_events.items():
-        # Get starting year and handle exception for starting event
-        if event + 1 in list(d_o_events.keys()):
-            # 500 year overlap
-            start = d_o_events[event + 1] + overlap
-        else:
-            start = prox_data['age_BP'].iloc[-1]
-        # Get ending year and handle exception for ending event
-        if event == min(list(d_o_events.keys())):
-            end = prox_data['age_BP'].iloc[0]
-        else:
-            # Again, 500 year overlap when possible
-            end = year - overlap
-
-        # Get the actual indices we need
-        idx_start = find_nearest(prox_data['age_BP'], start)
-        idx_end = find_nearest(prox_data['age_BP'], end)
-
-        rel_data = prox_data.iloc[idx_end: idx_start]
-
-        chunks[event] = rel_data
-
-    return chunks
-
-
-def epoch_ice(ice_data, d_o_events, period, overlap):
-    """
-    Does the epoch analysis for the much simpler ice system where
-    there's only two lags to compare between
-    """
-    lag_df = pd.DataFrame(columns=['NGRIP-WAIS', 'NGRIP-ARABIA', 'ARABIA-WAIS'])
-
-    for event, year in d_o_events.items():
-        # Get starting year and handle exception for starting event
-        if event + 1 in list(d_o_events.keys()):
-            # 500 year overlap
-            start = d_o_events[event + 1] + overlap
-        else:
-            start = ice_data['age_BP'].iloc[-1]
-        # Get ending year and handle exception for ending event
-        if event == min(list(d_o_events.keys())):
-            end = ice_data['age_BP'].iloc[0]
-        else:
-            # Again, 500 year overlap when possible
-            end = year - overlap
-
-        # Get the actual indices we need
-        idx_start = find_nearest(ice_data['age_BP'], start)
-        idx_end = find_nearest(ice_data['age_BP'], end)
-
-        rel_data = ice_data.iloc[idx_end:idx_start]
-        # Seems to work to slice our indices as needed!
-        # Let's calculate the lags
-        lag_dict = {'NGRIP-WAIS': lag_finder_full(rel_data.ngrip, 
-                                                  rel_data.wais,
-                                                  period, False),
-                    'NGRIP-ARABIA': lag_finder_full(rel_data.ngrip, 
-                                                    rel_data.arab,
-                                                    period, False),
-                    'ARABIA-WAIS': lag_finder_full(rel_data.arab, 
-                                                    rel_data.wais,
-                                                    period, False)}
-        lag_dict = pd.DataFrame(lag_dict, index=[event])
-        lag_df = pd.concat([lag_df, lag_dict])
-
-    return lag_df
-
-
-def print_stats(lag_df, title, perc=0.975, mode='95CI', ice=False):
-    """
-    Prints 95% CI for the various lags in the given data
-    """
-    means = lag_df.mean()
-    if mode == '95CI':
-        st_err = stats.t.ppf(perc, len(lag_df)) * lag_df.std() /\
-            np.sqrt(len(lag_df) - 1)
-    elif mode =='stdev':
-        st_err = lag_df.std()
-    else:
-        lag_df_np = np.array(lag_df)
-        means = lag_df[lag_df_np < 750].mean()
-        st_err = lag_df[lag_df_np < 750].std()
-    print('\n' + title)
-    if not ice:
-        print(f'MAW-NGRIP lag: {means["MAW-NGRIP"]:.0f} ± {st_err["MAW-NGRIP"]:.0f}')
-        print(f'MAW-WAIS lag: {means["MAW-WAIS"]:.0f} ± {st_err["MAW-WAIS"]:.0f}')
-    elif ice:
-        print(f'NGRIP-ARABIA lag: {means["NGRIP-ARABIA"]:.0f} ± {st_err["NGRIP-ARABIA"]:.0f}')
-        print(f'ARABIA-WAIS lag: {means["ARABIA-WAIS"]:.0f} ± {st_err["ARABIA-WAIS"]:.0f}')
-    print(f'NGRIP-WAIS lag: {means["NGRIP-WAIS"]:.0f} ± {st_err["NGRIP-WAIS"]:.0f}')
-
-
-def plot_chunk(data, title=''):
+def plot_chunk(data, title='', period=20):
     """
     Plots the chunk of data to observe trends
     """
-    years = np.linspace(-128 * 20 / 2, 128 * 20 / 2, 128)
+    years = np.linspace(-128 * period / 2, 128 * period / 2, 128)
     
     plt.figure()
     for x in data.columns[1:]:
@@ -499,7 +309,7 @@ def plot_chunk(data, title=''):
     plt.title(title)
 
 
-def composite(d_o_events, chunks):
+def composite(d_o_events, chunks, period):
     """
     Creates a composite D-O event from all the individual D-O events
     """
@@ -510,12 +320,12 @@ def composite(d_o_events, chunks):
         else:
             for col in aggregate.columns[1:]:
                 aggregate[col] += chunk[col]
-    aggregate['age_BP'] = np.arange(0, 20 * len(chunk), 20)
+    aggregate['age_BP'] = np.arange(0, period * len(chunk), period)
     
     return aggregate
 
 
-def chunked_d_o(d_o_events, prox_data):
+def chunked_d_o(d_o_events, prox_data, period):
     """
     Organizes the continous D-O event record into a series of chunks, 
     index by the dictionary
@@ -524,8 +334,8 @@ def chunked_d_o(d_o_events, prox_data):
     chunks = {event: None for event in d_o_events.keys()}
 
     for event, year in d_o_events.items():
-        start = year - 128 * 20 / 2
-        end = year + 128 * 20 / 2
+        start = year - 128 * period / 2
+        end = year + 128 * period / 2
         
         chunk = prox_data.query(f'{start} < age_BP < {end}').reset_index(drop=True)
         chunks[event] = chunk
@@ -565,7 +375,8 @@ def averaged_lag_mats(chunks, period):
     stacked_arr = np.stack([mat.to_numpy(dtype=float) for mat in lag_dict.values()])
     mean_lag = stacked_arr.mean(axis=0)
     std_lag = stacked_arr.std(axis=0)
-    se_lag = stats.t.ppf(0.975, stacked_arr.shape[0]) * std_lag / np.sqrt(stacked_arr.shape[0])
+    se_lag = stats.t.ppf(0.975, stacked_arr.shape[0]) * std_lag /\
+        np.sqrt(stacked_arr.shape[0] - 1)
     # Get these back into pandas dataframes
     # Should be fine since shape and order are preserved when doing this
     mean_lag = pd.DataFrame(mean_lag, columns=chunks[10].columns[1:], 
@@ -604,7 +415,6 @@ def plot_psd(data, record, nperseg=128, sig=0.95, cutoff=0.005, period=20, name=
     Plots the psd and red noise null hypothesis to check for significant peaks
     under "cutoff"
     """
-    global f, Pxx
     array = data[record]
     
     f, Pxx = signal.welch(array , fs=1/period, nperseg=256, nfft=256)
@@ -638,10 +448,8 @@ def plot_psd(data, record, nperseg=128, sig=0.95, cutoff=0.005, period=20, name=
 
 
 def main():
-    global prox_data, prox_data_high
+    global records
     records = load_data(filter_year='46000')
-    records['maw_3_clean'] = pd.read_csv('internal_excel_sheets/' +
-                                         'filled_seb_runs/MAW-3-clean.csv')
 
     period = 20
     filt_freq = 1/100
@@ -651,16 +459,20 @@ def main():
     _, d_o_events, _ = d_o_dates(min_date=min_ice_date, 
                                  max_date=max_ice_date)
     
-    prox_data = plot_cross_corr([records['maw_3_clean'], records['ngrip'],
-                                records['wais'], records['arabia']],
+    # Combine the Mawmluh cave records
+    records['maw_comb'] = combine_mawmluh(records, cutoff=39000)
+    
+    prox_data = plot_cross_corr([records['maw_comb'], records['ngrip'],
+                                records['wais'], records['arabia'],
+                                records['hulu']],
                     title='Cross Correlation Between MAW-3 and NGRIP', 
                     period=period, filter_freq=filt_freq)
 
     # Let's now do our chunk-based analysis of D-O events
-    chunks = chunked_d_o(d_o_events, prox_data)
+    chunks = chunked_d_o(d_o_events, prox_data, period)
     # Use this to create a composite, and plot
-    aggregate = composite(d_o_events, chunks)
-    plot_chunk(aggregate, 'Composite D-O Event')
+    aggregate = composite(d_o_events, chunks, period)
+    plot_chunk(aggregate, 'Composite D-O Event', period)
     
     # Lag-correlation matrices
     comp_mat_full = lag_corr_mat(prox_data, 20)
@@ -671,14 +483,14 @@ def main():
     
     print('\n\nFull Record')
     print(comp_mat_full)
-    print('Composite')
+    print('\nComposite')
     print(comp_mat_agg)
-    print('Each event')
+    print('\nEach event')
     print(comp_mat_chunk)
     
     # Great! This seems to work. Let's try the red fit for maw    
     plot_psd(prox_data, 'maw', nperseg=128, period=period,
-             sig=0.95, cutoff=filt_freq, name='Mawmluh Cave')
+             sig=0.95, cutoff=filt_freq / 2, name='Mawmluh Cave')
         
     
 if __name__ == '__main__':
