@@ -24,8 +24,6 @@ def load_data(filter_year='46000'):
 
     Time to add in  CH1!
     """
-    maw_3_proxy = pd.read_csv('internal_excel_sheets/filled_seb_runs/' +
-                              'MAW-3-filled-AGES.csv')
     ch1_proxy = pd.read_csv('internal_excel_sheets/filled_seb_runs/' +
                             'CH1-filled-AGES.csv')
 
@@ -36,29 +34,29 @@ def load_data(filter_year='46000'):
                                names=['depth_mm', 'd18O', 'dust',
                                       'age_BP', 'age_error'])
 
-    vostok_data = pd.read_excel('external_excel_sheets/totalvosdata.xls',
-                                sheet_name='Vostok',
-                                skiprows=1,
-                                names=['depth_m', 'ice_age_ka', 'd18O', 
-                                       'dust', 'gas_age_ka', 'CO2', 'CH4'])
-    vostok_data['age_BP'] = vostok_data['ice_age_ka'] * 1000
+    # vostok_data = pd.read_excel('external_excel_sheets/totalvosdata.xls',
+    #                             sheet_name='Vostok',
+    #                             skiprows=1,
+    #                             names=['depth_m', 'ice_age_ka', 'd18O', 
+    #                                    'dust', 'gas_age_ka', 'CO2', 'CH4'])
+    # vostok_data['age_BP'] = vostok_data['ice_age_ka'] * 1000
 
-    ball_gown = pd.read_csv('external_excel_sheets/' +
-                            'ball_gown_cave.txt',
-                             skiprows=145,
-                             names=['stalagmite', 'depth_mm', 'age_BP',
-                                    'd18O', 'd13C'],
-                             sep='	')
-    ball_gown.sort_values(by='age_BP', inplace=True)
-    ball_gown.reset_index(inplace=True, drop=True)
+    # ball_gown = pd.read_csv('external_excel_sheets/' +
+    #                         'ball_gown_cave.txt',
+    #                          skiprows=145,
+    #                          names=['stalagmite', 'depth_mm', 'age_BP',
+    #                                 'd18O', 'd13C'],
+    #                          sep='	')
+    # ball_gown.sort_values(by='age_BP', inplace=True)
+    # ball_gown.reset_index(inplace=True, drop=True)
 
-    dome_fuji = pd.read_excel('external_excel_sheets/df2012isotope-temperature.xls',
-                               sheet_name='DF1 Isotopes',
-                               skiprows=11,
-                               names=['ID', 'top_m', 'bottom_m', 'center_m',
-                                      'age_ka', 'd18O', 'dD', 'd_excess'])
-    dome_fuji['age_BP'] = dome_fuji['age_ka'] * 1000
-    dome_fuji['age_BP'] = dome_fuji['age_BP'] - 50
+    # dome_fuji = pd.read_excel('external_excel_sheets/df2012isotope-temperature.xls',
+    #                            sheet_name='DF1 Isotopes',
+    #                            skiprows=11,
+    #                            names=['ID', 'top_m', 'bottom_m', 'center_m',
+    #                                   'age_ka', 'd18O', 'dD', 'd_excess'])
+    # dome_fuji['age_BP'] = dome_fuji['age_ka'] * 1000
+    # dome_fuji['age_BP'] = dome_fuji['age_BP'] - 50
 
     wais = pd.read_excel('external_excel_sheets/wais_data.xls',
                          sheet_name='WDC d18O',
@@ -69,27 +67,27 @@ def load_data(filter_year='46000'):
     wais = wais.query('d18O < 1000')
     wais['age_BP'] = 1000 * ((wais['age_top'] + wais['age_bottom']) / 2)
 
-    epica_t = pd.read_csv('external_excel_sheets/buizert2021edc-temp.txt',
-                          skiprows=122, sep='	',
-                          names=['age_BP', 't_anom', 't_high', 't_low'])
+    # epica_t = pd.read_csv('external_excel_sheets/buizert2021edc-temp.txt',
+    #                       skiprows=122, sep='	',
+    #                       names=['age_BP', 't_anom', 't_high', 't_low'])
 
     # Old hulu data- let's try to link the unpublished record with this too
-    # hulu_old = pd.DataFrame()
-    # # Need to do bullshit for hulu cave as the file is badly formatted
-    # age = []
-    # d18O = []
-    # with open('external_excel_sheets/hulu_cave_d18O.txt') as file:
-    #     for count, line in enumerate(file.readlines()):
-    #         if count == 0:
-    #             continue
-    #         age.append(line[15:20].strip())
-    #         d18O.append(line[25:].strip())
+    hulu_old = pd.DataFrame()
+    # Need to do bullshit for hulu cave as the file is badly formatted
+    age = []
+    d18O = []
+    with open('external_excel_sheets/hulu_cave_d18O.txt') as file:
+        for count, line in enumerate(file.readlines()):
+            if count == 0:
+                continue
+            age.append(line[15:20].strip())
+            d18O.append(line[25:].strip())
 
-    # hulu_old = pd.DataFrame({'age_BP': age,
-    #                           'd18O': d18O})
-    # hulu_old['d18O'] = pd.to_numeric(hulu_old['d18O'])
-    # hulu_old['age_BP'] = pd.to_numeric(hulu_old['age_BP'])
-    # hulu_old.sort_values(by='age_BP', inplace=True)
+    hulu_old = pd.DataFrame({'age_BP': age,
+                              'd18O': d18O})
+    hulu_old['d18O'] = pd.to_numeric(hulu_old['d18O'])
+    hulu_old['age_BP'] = pd.to_numeric(hulu_old['age_BP'])
+    hulu_old.sort_values(by='age_BP', inplace=True)
     
     # Hulu has multiple speleothems that must be combined together
     hulu_msl = pd.read_excel('external_excel_sheets/hulu_unpublished.xlsx', 
@@ -103,6 +101,8 @@ def load_data(filter_year='46000'):
                              names=['age_BP', 'd18O'], sheet_name='H82')
     hulu_data = pd.concat([hulu_msl, hulu_msd,
                            hulu_h82]).sort_values(by='age_BP')
+    # Remove NaN values
+    hulu_data = hulu_data[~hulu_data['d18O'].isnull()].reset_index()
     
     # Arabian sediment record
     arabia = pd.read_csv('external_excel_sheets/arabian_sediment.txt',
@@ -126,6 +126,8 @@ def load_data(filter_year='46000'):
                               sheet_name='d13C final',
                               skiprows=68)
     maw_3_clean = maw_3_d18O.merge(maw_3_d13C, on='age_BP', how='left')
+    maw_3_clean = maw_3_clean.rename(columns={'top_dist_mm_x': 'top_dist_mm'}).\
+            drop(columns='top_dist_mm_y')
     
     # "tidy" this and focus on good data region
     maw_3_clean = maw_3_clean.query(f'age_BP <= {filter_year}')
@@ -133,21 +135,39 @@ def load_data(filter_year='46000'):
     # maw_3_clean.drop_duplicates(subset='age_BP', inplace=True)
     
     # Include the Jaglan et. al paper from 2021
-    maw_jag = pd.read_excel('external_excel_sheets/maw_jagalan.xlsx', 
+    maw_jag_old = pd.read_excel('external_excel_sheets/maw_jagalan.xlsx', 
                             names=['top_dist_mm', 'age_BP', 'd18O', 'd13C'],
                             sheet_name='Depth, Age, O & C isotope data')
+    
+    maw_jag_d18O = pd.read_excel('internal_excel_sheets/Jaglan_Maw_am1_copra.xlsx', 
+                            usecols='B:C,K',names=['top_dist_mm', 'age_BP', 'd18O'], 
+                            sheet_name='d18O final',
+                            skiprows=2)
+    maw_jag_d13C = pd.read_excel('internal_excel_sheets/Jaglan_Maw_am1_copra.xlsx', 
+                            usecols='B:C,K',names=['top_dist_mm', 'age_BP', 'd13C'], 
+                            sheet_name='d13C final',
+                            skiprows=2)
+    maw_jag = maw_jag_d18O.merge(maw_jag_d13C, on='age_BP', how='left')
+    maw_jag = maw_jag.rename(columns={'top_dist_mm_x': 'top_dist_mm'}).\
+        drop(columns='top_dist_mm_y')
+    
+    # Yemen, 2003
+    socotra = pd.read_excel('external_excel_sheets/moomi2003.xls', 
+                            names=['top_dist_mm', 'd18O', 'age_BP'],
+                            sheet_name='M1-2 d18O', skiprows=6)
+    # Remove NaN values
+    socotra = socotra[~socotra['d18O'].isnull()].reset_index()
 
     records = {'maw_3_clean': maw_3_clean,
                'ch1_proxy': ch1_proxy,
                'maw_jag': maw_jag,
+               'maw_jag_old': maw_jag_old,
                'ngrip': ngrip_data,
                'hulu': hulu_data,
-               'vostok': vostok_data,
-               'ball_gown': ball_gown,
-               'dome_fuji': dome_fuji,
                'wais': wais,
                'arabia': arabia,
-               'epica_t': epica_t}
+               'hulu_old': hulu_old,
+               'socotra': socotra}
 
     return records
 

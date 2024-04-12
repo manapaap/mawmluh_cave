@@ -28,7 +28,7 @@ def proxy_stack(records, d_o_dates, age_data):
     """
     fig, ax = plt.subplots(6, 1, sharex=True)
     plt.subplots_adjust(top=0.6)
-    fig.set_size_inches(10, 8)
+    fig.set_size_inches(10, 15)
     # plt.tight_layout()
     plt.subplots_adjust(hspace=0)
     min_age = records['maw_3_clean']['age_BP'].min()
@@ -47,7 +47,7 @@ def proxy_stack(records, d_o_dates, age_data):
     ax[0].plot(records['maw_3_clean'].age_BP, records['maw_3_clean'].d13C, 
                    label='MAW-3 d18O', color=color1)
     ax[0].plot(records['maw_jag'].age_BP, records['maw_jag'].d13C,
-               label='Jaglan 2021', color=color1_5, alpha=0.6)
+               label='Jaglan 2021', color=color2_5, alpha=0.7)
     ax[0].set_ylim(-5, 4)
     ax[0].invert_yaxis()
     ax[0].grid()
@@ -58,7 +58,7 @@ def proxy_stack(records, d_o_dates, age_data):
     ax[1].plot(records['maw_3_clean'].age_BP, records['maw_3_clean'].d18O,
                label='MAW-3 d18O', color=color2)
     ax[1].plot(records['maw_jag'].age_BP, records['maw_jag'].d18O,
-               label='Jaglan 2021', color=color2_5, alpha=0.6)
+               label='Jaglan 2021', color=color1_5, alpha=0.6)
     ax[1].set_ylim(-8, -0.5)
     ax[1].invert_yaxis()
     ax[1].grid()
@@ -147,7 +147,7 @@ def proxy_stack_comb(records, d_o_dates, age_data):
     """
     fig, ax = plt.subplots(6, 1, sharex=True)
     plt.subplots_adjust(top=0.6)
-    fig.set_size_inches(10, 8)
+    fig.set_size_inches(10, 15)
     # plt.tight_layout()
     plt.subplots_adjust(hspace=0)
     min_age = records['maw_comb']['age_BP'].min()
@@ -302,7 +302,7 @@ def main():
     plot_map()
     
     # Plot the same stack but with the combined record
-    records['maw_comb'] = combine_mawmluh(records, cutoff=39000)
+    records['maw_comb'] = combine_mawmluh(records, cutoff=39500)
     proxy_stack_comb(records, d_o_events, age_data)
     
 

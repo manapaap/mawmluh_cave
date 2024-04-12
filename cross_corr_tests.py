@@ -72,28 +72,26 @@ def d_o_dates(min_date=27000, max_date=60000):
     # But the full events into a dict form too
     d_o_all = {event: year for event, year in zip(range(20, 0, -1), d_o_all)}
 
-    # do this to get ngrip as well
+    # do this to get scotra as well
     d_o_ng = {event: year for event, year in zip(range(20, 0, -1),
                                                  d_o_all.values()) if
-              year > min_date and year < max_date}
+              year > 42000 and year < 53000}
 
     return d_o_all, d_o_events, d_o_ng
 
 
-def combine_mawmluh(records, cutoff=39000):
+def combine_mawmluh(records, cutoff=40000):
     """
     Combines the MAW-3 record with the Jaglan record at a defined cutoff year
     """
     maw_sliced = records['maw_3_clean'].query(f'age_BP < {cutoff}')
     jag_sliced = records['maw_jag'].query(f'age_BP > {cutoff}')
     
-    combined = pd.concat([maw_sliced, jag_sliced]).drop(['top_dist_mm_x',
-                                                   'top_dist_mm_y',
-                                                   'top_dist_mm'], axis=1)
+    combined = pd.concat([maw_sliced, jag_sliced]).drop(['top_dist_mm'], axis=1)
     return combined.sort_values('age_BP')
     
 
-def plot_cross_corr(arrs, title='', period=25, filter_freq=1/500, plot=True):
+def plot_cross_corr(arrs, title='', period=25, filter_freq=1/500, plot=True, label='maw'):
     """
     Interpolates to even spacing and puts three signals through a low-pass
     filter to remove noise
@@ -142,7 +140,7 @@ def plot_cross_corr(arrs, title='', period=25, filter_freq=1/500, plot=True):
         fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(5, 1, sharex=True)
         fig.suptitle('Original vs. Interpolated d18O Record')
     
-        ax1.set_ylabel('MAW-3')
+        ax1.set_ylabel(label)
         ax1.plot(arr1['age_BP'], arr1['d18O'], color='lightgreen')
         ax1.plot(ages, new_arr1, color='blue', alpha=0.5)
         ax1.grid()
@@ -189,7 +187,7 @@ def plot_cross_corr(arrs, title='', period=25, filter_freq=1/500, plot=True):
     new_arr5 = signal.detrend(new_arr5)
 
     data = pd.DataFrame({'age_BP': ages,
-                         'maw': new_arr1,
+                         label: new_arr1,
                          'ngrip': new_arr2,
                          'wais': new_arr3,
                          'arabia': new_arr4,
@@ -340,8 +338,10 @@ def chunked_d_o(d_o_events, prox_data, period):
         chunk = prox_data.query(f'{start} < age_BP < {end}').reset_index(drop=True)
         chunks[event] = chunk
     # Not enough data...
-    chunks.pop(4)
-    chunks.pop(3)
+    # Hack to make this work for Scotra data
+    if 4 in list(d_o_events.keys()):
+        chunks.pop(4)
+        chunks.pop(3)
     
     return chunks
     
@@ -379,10 +379,11 @@ def averaged_lag_mats(chunks, period):
         np.sqrt(stacked_arr.shape[0] - 1)
     # Get these back into pandas dataframes
     # Should be fine since shape and order are preserved when doing this
-    mean_lag = pd.DataFrame(mean_lag, columns=chunks[10].columns[1:], 
-                            index=chunks[10].columns[1:])
-    se_lag = pd.DataFrame(se_lag, columns=chunks[10].columns[1:], 
-                            index=chunks[10].columns[1:])
+    colnames = chunks[next(iter(chunks))].columns[1:]
+    mean_lag = pd.DataFrame(mean_lag, columns=colnames, 
+                            index=colnames)
+    se_lag = pd.DataFrame(se_lag, columns=colnames, 
+                            index=colnames)
 
     return mean_lag, se_lag
 
@@ -410,14 +411,15 @@ def red_power(f, autocorr, A):
     return rs
 
 
-def plot_psd(data, record, nperseg=128, sig=0.95, cutoff=0.005, period=20, name='Mawmluh'):
+def plot_psd(array, nperseg=128, sig=0.95, cutoff=0.005, 
+             period=20, nfft=256,name='Mawmluh'):
     """
     Plots the psd and red noise null hypothesis to check for significant peaks
     under "cutoff"
-    """
-    array = data[record]
     
-    f, Pxx = signal.welch(array , fs=1/period, nperseg=256, nfft=256)
+    Returns relevant parameters to reconstruct the figure
+    """    
+    f, Pxx = signal.welch(array , fs=1/period, nperseg=nperseg, nfft=nfft)
     Pxx /= Pxx.mean()
     # cut off the high frequency bs
     Pxx = Pxx[f < cutoff]
@@ -435,9 +437,13 @@ def plot_psd(data, record, nperseg=128, sig=0.95, cutoff=0.005, period=20, name=
     m_df = len(array) / 2
     f_stat = stats.f.ppf(sig, n_df, m_df)
     # Plot the PSD
-    max_sig = f[Pxx.argmax()]
+    # This way to extract the peak assumes only one sig peak but that is OK
+    max_sig = np.mean(f[Pxx > (f_stat * red_fitted)])
     plt.figure()
-    plt.plot(f, Pxx, label=f'{name}, max at {1/max_sig:.0f} years')
+    if max_sig is np.nan:
+        plt.plot(f, Pxx, label=f'{name}, Not Significant')
+    else:
+        plt.plot(f, Pxx, label=f'{name}, sig at {1/max_sig:.0f} years')
     plt.plot(f, red_fitted, label='Fitted Red Noise')
     plt.plot(f, f_stat * red_fitted, label=f'{sig} Significance')
     plt.grid()
@@ -445,10 +451,16 @@ def plot_psd(data, record, nperseg=128, sig=0.95, cutoff=0.005, period=20, name=
     plt.xlabel('Frequency (Cycles / year)')
     plt.legend()
     plt.title(f'Power Spectrum of {name}')
+    
+    spectral_params = {'f': f,
+                       'Pxx': Pxx,
+                       'red_fit': red_fitted,
+                       'f_stat': f_stat}
+    return spectral_params
 
 
 def main():
-    global records
+    global records, d_o_older, prox_data_older, chunks
     records = load_data(filter_year='46000')
 
     period = 20
@@ -456,7 +468,7 @@ def main():
     min_ice_date = 27000
     max_ice_date = records['ngrip']['age_BP'].max()
 
-    _, d_o_events, _ = d_o_dates(min_date=min_ice_date, 
+    _, d_o_events, d_o_older = d_o_dates(min_date=min_ice_date, 
                                  max_date=max_ice_date)
     
     # Combine the Mawmluh cave records
@@ -489,8 +501,31 @@ def main():
     print(comp_mat_chunk)
     
     # Great! This seems to work. Let's try the red fit for maw    
-    plot_psd(prox_data, 'maw', nperseg=128, period=period,
-             sig=0.95, cutoff=filt_freq / 2, name='Mawmluh Cave')
+    plot_psd(prox_data['maw'], nperseg=128, period=period, nfft=256,
+             sig=0.95, cutoff=0.0025, name='Mawmluh Cave')
+    
+    
+    # Let's try to redo this with Scotra cave and see what happens 
+    prox_data_older = plot_cross_corr([records['socotra'], records['ngrip'],
+                                records['wais'], records['arabia'],
+                                records['hulu']],
+                            title='Cross Correlation Between Moomi Cave and NGRIP', 
+                    period=period, filter_freq=filt_freq, label='socotra')
+    
+    # Let's now do our chunk-based analysis of D-O events
+    chunks_old = chunked_d_o(d_o_older, prox_data_older, period)
+    # Use this to create a composite, and plot
+    aggregate_old = composite(d_o_older, chunks_old, period)
+    plot_chunk(aggregate_old, 'Composite D-O Event, Older', period)
+    
+    comp_mat_chunk, comp_mat_se = averaged_lag_mats(chunks_old, 20)
+    # Clean this up and print
+    comp_mat_chunk = clean_lag_corr(comp_mat_chunk, comp_mat_se)
+    
+    print('\nOlder Events')
+    print(comp_mat_chunk)
+    
+    # Doesn't seem to be working well. Will revisit. 
         
     
 if __name__ == '__main__':
