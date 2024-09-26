@@ -471,19 +471,22 @@ def main():
     
     # Let's test lag between just mawmluh stable isotopes
     global chunks_maw, aggregate_maw
-    short_period = 5
-    anal_len = 128 * 4
+    short_period = 3
+    anal_len = 128 * 6
     prox_maw = clean_data_maw(records['maw_comb'], period=short_period, 
                               filt_freq=filt_freq)
     chunks_maw = chunked_d_o(d_o_events, prox_maw, short_period, anal_len)
     aggregate_maw = composite(d_o_events, chunks_maw, short_period)
     plot_chunk(aggregate_maw, 'Composite D-O Event', short_period, anal_len)
+    comp_mat_agg_maw = lag_corr_mat(aggregate_maw, short_period)
     comp_mat_maw, comp_maw_se = averaged_lag_mats(chunks_maw, short_period,
                                                     sig=0.95)
     comp_mat_maw = clean_lag_corr(comp_mat_maw, comp_maw_se)
     
     print('\nMawmluh Cave Isotopes')
     print(comp_mat_maw)
+    print('\nComposite')
+    print(comp_mat_agg_maw)
     
     
 if __name__ == '__main__':
