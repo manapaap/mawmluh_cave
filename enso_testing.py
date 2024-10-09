@@ -161,7 +161,7 @@ def record_resolution(record, cutoff_period, cutoff_length):
     
 
 def main():
-    global seasonal
+    global seasonal, cts_chunks
     records = load_data(filter_year='46000')
     records['maw_comb'] = combine_mawmluh(records, cutoff=39500)
             
@@ -177,7 +177,7 @@ def main():
     plot_chunks(cts_chunks, record)
     print('\nLengths of high-res chunks: ', [len(x) for x in cts_chunks])
     # Let's grab this high resolution regieme and play around
-    seasonal = cts_chunks[3] # [x for x in cts_chunks if len(x) > 200][0]
+    seasonal = cts_chunks[4] # [x for x in cts_chunks if len(x) > 200][0]
     print(f'\nAnalysis Start: {seasonal.age_BP.iloc[0]}')
     print(f'Analysis End: {seasonal.age_BP.iloc[-1]}')
     
@@ -188,9 +188,9 @@ def main():
     
     seasonal = downsample(seasonal, cutoff_period)
     seasonal = detrend_data(seasonal, cutoff_period, 1/50, False)
-    plot_psd(seasonal['d18O'], nperseg=32, sig=0.9, cutoff=1, period=cutoff_period,
+    plot_psd(seasonal['d18O'], nperseg=32, sig=0.95, cutoff=1, period=cutoff_period,
              nfft=64, name='Seasonal, d18O')
-    plot_psd(seasonal['d13C'], nperseg=32, sig=0.9, cutoff=1, period=cutoff_period,
+    plot_psd(seasonal['d13C'], nperseg=32, sig=0.95, cutoff=1, period=cutoff_period,
              nfft=64, name='Seasonal, d13C')
     
     seasonal.to_csv('internal_excel_sheets/ENSO-downsample.csv', index=False)

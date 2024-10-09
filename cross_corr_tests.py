@@ -287,17 +287,23 @@ def lag_finder_full(y1, y2, period, plot=True):
 def plot_chunk(data, title='', period=20, anal_len=128):
     """
     Plots the chunk of data to observe trends
+    
+    Highlight NGRIP/MAW data
     """
     years = np.linspace(-anal_len * period / 2, anal_len * period / 2, 
                         anal_len)
     # Cycle through linestyles for clarity?
-    lines = ["-","--","-."]
+    lines = ["--","-."]
     linecycler = cycle(lines)
     
     plt.figure()
     for n, x in enumerate(data.columns[1:]):
-        plt.plot(years, -data[x], label=x, alpha=0.9, 
-                 linestyle=next(linecycler))
+        if x=='MAW' or x=='NGRIP':
+            plt.plot(years, -data[x], color='black', linewidth=2.5, alpha=0.8)
+            plt.plot(years, -data[x], label=x, linewidth=1, alpha=0.9)
+        else:
+            plt.plot(years, -data[x], label=x, alpha=0.8, 
+                     linestyle=next(linecycler))
     plt.grid()
     plt.legend()
     plt.xlabel('Years From Dansgaard-Oeschger Event')
@@ -425,7 +431,7 @@ def clean_data_maw(arrs, period=25, filt_freq=1/500):
 
 
 def main():
-    # global records, aggregate
+    global records
     records = load_data(filter_year='46000')
 
     period = 30
@@ -448,6 +454,7 @@ def main():
     # Let's now do our chunk-based analysis of D-O events
     chunks = chunked_d_o(d_o_events, prox_data, period)
     # Use this to create a composite, and plot
+    
     aggregate = composite(d_o_events, chunks, period)
     plot_chunk(aggregate, 'Composite D-O Event', period)
     
@@ -470,7 +477,6 @@ def main():
              sig=0.95, cutoff=0.0025, name='Mawmluh Cave')
     
     # Let's test lag between just mawmluh stable isotopes
-    global chunks_maw, aggregate_maw
     short_period = 3
     anal_len = 128 * 6
     prox_maw = clean_data_maw(records['maw_comb'], period=short_period, 
