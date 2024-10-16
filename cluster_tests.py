@@ -67,7 +67,7 @@ def plot_clusters(data, clust):
     Creates two subplots for the clustered data on a d18O-d13C space
     and in d18O-time space
     """
-    fig, axs = plt.subplots(2, 1)
+    fig, axs = plt.subplots(3, 1, figsize=(10, 8))
     plt.subplots_adjust(hspace=0.5)
     
     axs[0].scatter(data.d18O, data.d13C, c=clust.labels_)
@@ -77,8 +77,12 @@ def plot_clusters(data, clust):
     
     axs[1].scatter(data.age_BP, data.d18O, c=clust.labels_)
     axs[1].grid()
-    axs[1].set_xlabel('Age BP')
     axs[1].set_ylabel('d18O')
+    
+    axs[2].scatter(data.age_BP, data.d13C, c=clust.labels_)
+    axs[2].grid()
+    axs[2].set_xlabel('Age BP')
+    axs[2].set_ylabel('d13C')
     
     plt.show()
 
