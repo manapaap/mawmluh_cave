@@ -298,6 +298,7 @@ def plot_map():
     loc_wais = [-79.468, 112.086][::-1]
     loc_arab = [23.12, 66.497][::-1]
     loc_turk = [41.5, 32][::-1]
+    loc_braz = [-10.1602, -40.8605][::-1]
     
     # Same colors as proxy stack
     color2 = plt.cm.viridis(0.0)
@@ -306,30 +307,42 @@ def plot_map():
     color5 = plt.cm.viridis(0.6)
     color6 = plt.cm.viridis(0.8)
     color7 = plt.cm.viridis(0.7)
+    color8 = plt.cm.viridis(0.3)
     
     ax = plt.axes(projection=ccrs.PlateCarree())
-    ax.coastlines()
+    ax.coastlines(alpha=0.9, linestyle='dashdot', linewidth=0.4)
     fig = plt.gcf()
     fig.set_size_inches(8, 3)
     
     size = 90
+    border_col = 'black'
+    width = 0.5
+    marker = '*'
     ax.scatter(*loc_mawmluh, label='Mawmluh Cave Speleothem', color=color2, s=size,
-               marker='X', edgecolor='red', linewidths=0.25)
+               marker=marker, edgecolor=border_col, linewidths=width)
     ax.scatter(*loc_hulu, label='Hulu Cave Speleothem', color=color3, s=size,
-               marker='X', edgecolor='red', linewidths=0.25)
+               marker=marker, edgecolor=border_col, linewidths=width)
     ax.scatter(*loc_ngrip, label='NGRIP Ice Core', color=color4, s=size,
-               marker='X', edgecolor='red', linewidths=0.25)
+               marker=marker, edgecolor=border_col, linewidths=width)
     ax.scatter(*loc_wais, label='WAIS Divide Ice Core', color=color5, s=size,
-               marker='X', edgecolor='red', linewidths=0.25)
+               marker=marker, edgecolor=border_col, linewidths=width)
     ax.scatter(*loc_arab, label='Arabian Sea Sediment Core', color=color6, s=size,
-               marker='X', edgecolor='red', linewidths=0.25)
-    ax.scatter(*loc_turk, label='Sofular Cave Speleotuem', color=color7, s=size,
-               marker='X', edgecolor='red', linewidths=0.25)
-    legend = ax.legend(borderpad=0.5)
+               marker=marker, edgecolor=border_col, linewidths=width)
+    ax.scatter(*loc_turk, label='Sofular Cave Speleothem', color=color7, s=size,
+               marker=marker, edgecolor=border_col, linewidths=width)
+    ax.scatter(*loc_turk, label='Sofular Cave Speleothem', color=color7, s=size,
+               marker=marker, edgecolor=border_col, linewidths=width)
+    ax.scatter(*loc_braz, label='NE Brazil Speleothems', color=color8, s=size,
+               marker=marker, edgecolor=border_col, linewidths=width)
+    ax.stock_img()
+    gl = ax.gridlines(draw_labels=True, dms=True, x_inline=False, y_inline=False,
+                 linestyle='dashed', alpha=0.6, color='dimgrey', linewidth=0.65)
+    gl.xlabels_top = False
+    gl.ylabels_right = False
+    legend = ax.legend(bbox_to_anchor=(1.025, 0.9), loc='upper left', borderaxespad=0.)
     for leg in legend.get_texts():
         leg.set_fontsize('small')
-    ax.set_xlim(-180, 180)
-    ax.set_title('Proxy Stack Locations')
+    ax.set_xlim(-90, 150)
 
     plt.show()
   
@@ -383,17 +396,24 @@ def plot_heinrich(maw_data, hein_dates):
     axs[1, 1].scatter(trapz_age, trapz_isotope, color='red', zorder=3)
     axs[1, 1].invert_yaxis()
     
-    
 
 def plot_heinrich_trapz(records, hein_date, trapz=True):
     """
     Plots H4/AIM8 data for d18O only, identifying the trapezoid shape
     as put forward in Liang et al. 
+    
+    NEW: Brazil stalagmite data and WAIS CO2
     """
-    fig, axs = plt.subplots(3, 1, sharex=True, sharey=False)
+    if hein_date==29500:
+        fig, axs = plt.subplots(3, 1, sharex=True, sharey=False)
+        fig.set_size_inches(3, 5)
+        ngrip=2
+    else:
+        fig, axs = plt.subplots(5, 1, sharex=True, sharey=False)
+        fig.set_size_inches(3, 7)
+        ngrip=4
     plt.subplots_adjust(hspace=0.0, top=0.5)
-    fig.text(0.5, 0.04, 'Age (kyr BP)', ha='center', va='center')
-    fig.set_size_inches(3, 5)
+    fig.text(0.5, 0.04, 'Age (kyr BP)', ha='center', va='center')    
     
     # Define the trapezoid H4 using web plot digizer
     trapz_age_maw = (39900, 39375, 38257, 38050)
@@ -409,6 +429,8 @@ def plot_heinrich_trapz(records, hein_date, trapz=True):
     color_maw = plt.cm.viridis(0.0)
     color_hulu = plt.cm.viridis(0.2)
     color_ng = plt.cm.viridis(0.4)
+    color_braz = plt.cm.viridis(0.3)
+    color_wais = plt.cm.viridis(0.8)
     
     axs[0].set_xlim((hein_date - 1500, hein_date + 1500))
     
@@ -424,16 +446,16 @@ def plot_heinrich_trapz(records, hein_date, trapz=True):
     axs[0].set_ylim((-5.2, -0.6))
     axs[0].invert_yaxis()
     
-    axs[2].plot(records['ngrip'].age_BP, records['ngrip'].d18O, 
+    axs[ngrip].plot(records['ngrip'].age_BP, records['ngrip'].d18O, 
                 color=color_ng)
-    if trapz:
-        axs[2].plot(trapz_age_ng, trapz_iso_ng, color='black', linestyle='dashed',
+    if False:
+        axs[ngrip].plot(trapz_age_ng, trapz_iso_ng, color='black', linestyle='dashed',
                     zorder=2, alpha=0.6)
-        axs[2].scatter(trapz_age_ng, trapz_iso_ng, color='red', zorder=3,
+        axs[ngrip].scatter(trapz_age_ng, trapz_iso_ng, color='red', zorder=3,
                        alpha=0.9)
-    axs[2].set_ylabel('NGRIP δ¹⁸O\n[‰ VSMOW]')
-    axs[2].spines[['top']].set_visible(False)
-    axs[2].set_ylim((-48, -34))
+    axs[ngrip].set_ylabel('NGRIP δ¹⁸O\n[‰ VSMOW]')
+    axs[ngrip].spines[['top']].set_visible(False)
+    axs[ngrip].set_ylim((-48, -34))
     
     axs[1].plot(records['hulu'].age_BP, records['hulu'].d18O, color=color_hulu)
     if trapz:
@@ -449,6 +471,21 @@ def plot_heinrich_trapz(records, hein_date, trapz=True):
     axs[1].set_ylim((-8.7, -5.7))    
     axs[1].invert_yaxis()
     
+    if hein_date==39000:
+        axs[2].plot(records['ne_brazil'].age_BP, records['ne_brazil'].d18O,
+                    color=color_braz)
+        axs[2].set_ylabel('NE Brazil δ¹⁸O\n[‰ VSMOW]')
+        axs[2].spines[['top']].set_visible(False)   
+        axs[2].spines['bottom'].set_visible(False)
+        
+        axs[3].plot(records['wais_co2'].age_BP, records['wais_co2'].CO2,
+                    color=color_wais)
+        axs[3].set_ylim((200, 225))
+        axs[3].set_ylabel('WAIS CO₂\n[ppm]')
+        axs[3].spines[['top']].set_visible(False)   
+        axs[3].spines['bottom'].set_visible(False)
+        axs[3].yaxis.set_label_position("right")
+        axs[3].yaxis.tick_right()
     plt.show()   
 
 
@@ -562,6 +599,7 @@ def plot_seasonal(era5_seasonal, era5_clm, pres=950, every=10, method='stream'):
         cs = ax.contourf(lon_grid_f, lat_grid_f, era5_clm[season].msl / 100,
                         transform=ccrs.PlateCarree(),
                         zorder=0, alpha=0.8, cmap='RdBu')
+        ax.clabel(cs, inline=False)
         ax.set_title(titles[i], fontsize=12)
         # Plotting Mawmluh location
         loc_mawmluh = [25.25888889, 91.71250000][::-1]
@@ -573,7 +611,7 @@ def plot_seasonal(era5_seasonal, era5_clm, pres=950, every=10, method='stream'):
                     verticalalignment='center', bbox=dict(facecolor='white', 
                                                           edgecolor='black',
                                                           alpha=1))
-        gl = ax.gridlines(draw_labels=True)
+        gl = ax.gridlines()
         # Suppress gridlines
         # Control for each subplot's gridline
         if season == 'DJF':  # Example for Winter
@@ -639,6 +677,8 @@ def add_hiatus(dataarray, tol=50, varz=['d18O', 'd13C']):
 def main():
     global records
     records = load_data(filter_year='46000')
+    # For this file
+    plt.rcParams['figure.dpi'] = 600
     
     age_data = pd.read_excel('internal_excel_sheets/filled_seb_runs/' +
                               'MAW-3_am10_copra.xlsx', usecols='A:C', 

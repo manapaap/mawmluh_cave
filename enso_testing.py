@@ -180,6 +180,7 @@ def main():
     seasonal = cts_chunks[4] # [x for x in cts_chunks if len(x) > 200][0]
     print(f'\nAnalysis Start: {seasonal.age_BP.iloc[0]}')
     print(f'Analysis End: {seasonal.age_BP.iloc[-1]}')
+    print(f'Analysis Res: {(seasonal.age_BP.iloc[-1] - seasonal.age_BP.iloc[0]) / len(seasonal):.2f}')
     
     # Subjective time
     # seasonal = seasonal.query('age_BP < 33950') # for chink number 2
@@ -188,9 +189,9 @@ def main():
     
     seasonal = downsample(seasonal, cutoff_period)
     seasonal = detrend_data(seasonal, cutoff_period, 1/50, False)
-    plot_psd(seasonal['d18O'], nperseg=32, sig=0.95, cutoff=1, period=cutoff_period,
+    plot_psd(seasonal['d18O'], nperseg=64, sig=0.95, cutoff=1, period=cutoff_period,
              nfft=64, name='Seasonal, d18O')
-    plot_psd(seasonal['d13C'], nperseg=32, sig=0.95, cutoff=1, period=cutoff_period,
+    plot_psd(seasonal['d13C'], nperseg=64, sig=0.95, cutoff=1, period=cutoff_period,
              nfft=64, name='Seasonal, d13C')
     
     seasonal.to_csv('internal_excel_sheets/ENSO-downsample.csv', index=False)

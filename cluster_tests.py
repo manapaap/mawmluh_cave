@@ -10,6 +10,7 @@ import pandas as pd
 from scipy.stats import linregress
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
+from scipy.odr import Model, Data, ODR
 
 
 chdir('C:/Users/aakas/Documents/Oster_lab/')
@@ -56,7 +57,7 @@ def fit_cluster(data, n_clusters=2):
     """
     Fits a kmeans object to the provided data
     """
-    kmeans = KMeans(n_clusters=2)
+    kmeans = KMeans(n_clusters=2, n_init=10)
     kmeans.fit(data)
 
     return kmeans    
@@ -98,56 +99,135 @@ def linreg_pprint(linreg_obj, title):
           f"R-squared: {r_value**2:.4f}\n"
           f"P-value: {p_value:.4e}\n"
           f"Standard Error: {std_err:.4f}\n")
-
-
-def stad_intr_slope(maw_stad, maw_intr, linreg_stad, linreg_intr, linreg_all):
+   
+    
+def plot_combined_clusters(data, maw_stad, maw_intr, linreg_stad, linreg_intr, linreg_all):
     """
-    Plots the best fit lines of each cluster on top of the cluster
-    to make the trends evident
+    Generates two subplots:
+    - Top: Clustered δ¹⁸O-δ¹³C space with linear regression overlays for 
+    stadial and interstadial data
+    - Bottom: δ¹⁸O vs. Age BP with consistent cluster coloring
+    
+    Thanks chat for combining the plots. 
     """
-    plt.figure()
-    # Construct our best fit lines
-    range_stad = maw_stad.d18O.min(), maw_stad.d18O.max()
-    range_intr = maw_intr.d18O.min(), maw_intr.d18O.max()
-    range_all = [min((maw_stad.d18O.min(), maw_intr.d18O.min())),
-                 max((maw_stad.d18O.max(), maw_intr.d18O.max()))]
-    range_stad = np.linspace(*range_stad, num=100)
-    range_intr = np.linspace(*range_intr, num=100)
-    range_all = np.linspace(*range_all, num=100)
-    # Output
+    fig, axs = plt.subplots(2, 1, figsize=(10, 12), 
+                             gridspec_kw={'height_ratios': [3, 1.5]})
+    plt.subplots_adjust(hspace=0.4)
+
+    # Top subplot: δ¹⁸O-δ¹³C space with regression overlays
+    range_stad = np.linspace(maw_stad.d18O.min(), maw_stad.d18O.max(), num=100)
+    range_intr = np.linspace(maw_intr.d18O.min(), maw_intr.d18O.max(), num=100)
+    range_all = np.linspace(min(data.d18O), max(data.d18O), num=100)
+
     out_stad = linreg_stad.slope * range_stad + linreg_stad.intercept
     out_intr = linreg_intr.slope * range_intr + linreg_intr.intercept
     out_all = linreg_all.slope * range_all + linreg_all.intercept
+
+    axs[0].scatter(maw_stad.d18O, maw_stad.d13C, label='Stadial Data',
+                   color='royalblue', alpha=0.8)
+    axs[0].scatter(maw_intr.d18O, maw_intr.d13C, label='Interstadial Data',
+                   color='gold', alpha=0.8)
+    axs[0].plot(range_stad, out_stad, label='Stadial Best Fit' +
+                f'\nR²={linreg_stad.rvalue**2:.3f}', color='red',
+                linestyle='dashed')
+    axs[0].plot(range_intr, out_intr, label='Interstadial Best Fit' +
+                f'\nR²={linreg_intr.rvalue**2:.3f}', color='blueviolet',
+                linestyle='dashed')
+    axs[0].plot(range_all, out_all, label='Full Record Best Fit' +
+                f'\nR²={linreg_all.rvalue**2:.3f}', color='black',
+                linestyle='dashed')
+    axs[0].set_xlabel('δ¹⁸O [‰ VSMOW]')
+    axs[0].set_ylabel('δ¹³C [‰ VPDB]')
+    axs[0].grid()
+    axs[0].legend(loc='upper center', bbox_to_anchor=(0.5, -0.1),
+                  fancybox=True, ncol=3)
+
+    # Bottom subplot: δ¹⁸O vs. Age BP
+    axs[1].scatter(maw_stad.age_BP, maw_stad.d18O, label='Stadial Data',
+                   color='royalblue', alpha=0.8)
+    axs[1].scatter(maw_intr.age_BP, maw_intr.d18O, label='Interstadial Data',
+                   color='gold', alpha=0.8)
+    axs[1].set_xlabel('Age BP')
+    axs[1].set_ylabel('δ¹⁸O [‰ VSMOW]')
+    axs[1].grid()
+    # axs[1].legend(loc='best')
+
+    plt.show()
+
+
+def orthogonal_least_squares(x, y):
+    """
+    Perform Orthogonal Distance Regression (ODR) to fit a line to the data.
+    """
+    # Define the linear model
+    def linear_func(params, x):
+        slope, intercept = params
+        return slope * x + intercept
+
+    # Create the data and model objects
+    data = Data(x, y)
+    model = Model(linear_func)
     
-    plt.scatter(maw_stad.d18O, maw_stad.d13C, label='Stadial Data',
-                color='royalblue', alpha=0.8)
-    plt.scatter(maw_intr.d18O, maw_intr.d13C, label='Interstadial Data',
-                color='gold', alpha=0.8)
-    plt.plot(range_stad, out_stad, label='Stadial Best Fit' +\
-             f'\nR²={linreg_stad.rvalue**2:.3f}', color='red', 
-             linestyle='dashed')
-    plt.plot(range_intr, out_intr, label='Interstadial Best Fit' +\
-             f'\nR²={linreg_intr.rvalue**2:.3f}', color='blueviolet', 
-             linestyle='dashed')
-    plt.plot(range_all, out_all, label='Full Record Best Fit' +\
-             f'\nR²={linreg_all.rvalue**2:.3f}', color='black', 
-             linestyle='dashed')
-    plt.xlabel('δ¹⁸O [‰ VSMOW]')
-    plt.ylabel('δ¹³C [‰ VPDB]')
+    # Set initial guess for slope and intercept
+    odr = ODR(data, model, beta0=[1.0, 0.0])
+    output = odr.run()
     
-    # Arrange legend
-    ax = plt.gca()
-    box = ax.get_position()
-    ax.set_position([box.x0, box.y0 + box.height * 0.1,
-                 box.width, box.height * 0.9])
-    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), 
-               fancybox=True, ncol=3)
-    plt.grid()
+    return output
+
+
+def plot_combined_clusters_odr(data, maw_stad, maw_intr, odr_stad, odr_intr, odr_all):
+    """
+    Generates two subplots:
+    - Top: Clustered δ¹⁸O-δ¹³C space with ODR regression overlays for 
+    stadial and interstadial data
+    - Bottom: δ¹⁸O vs. Age BP with consistent cluster coloring
+    """
+    fig, axs = plt.subplots(2, 1, figsize=(10, 12), 
+                             gridspec_kw={'height_ratios': [3, 1.5]})
+    plt.subplots_adjust(hspace=0.4)
+
+    # Top subplot: δ¹⁸O-δ¹³C space with regression overlays
+    range_stad = np.linspace(maw_stad.d18O.min(), maw_stad.d18O.max(), num=100)
+    range_intr = np.linspace(maw_intr.d18O.min(), maw_intr.d18O.max(), num=100)
+    range_all = np.linspace(min(data.d18O), max(data.d18O), num=100)
+
+    out_stad = odr_stad.beta[0] * range_stad + odr_stad.beta[1]
+    out_intr = odr_intr.beta[0] * range_intr + odr_intr.beta[1]
+    out_all = odr_all.beta[0] * range_all + odr_all.beta[1]
+
+    axs[0].scatter(maw_stad.d18O, maw_stad.d13C, label='Stadial Data',
+                   color='royalblue', alpha=0.8)
+    axs[0].scatter(maw_intr.d18O, maw_intr.d13C, label='Interstadial Data',
+                   color='gold', alpha=0.8)
+    axs[0].plot(range_stad, out_stad, label='Stadial ODR Fit' +
+                f'\nSlope={odr_stad.beta[0]:.3f}', color='red',
+                linestyle='dashed')
+    axs[0].plot(range_intr, out_intr, label='Interstadial ODR Fit' +
+                f'\nSlope={odr_intr.beta[0]:.3f}', color='blueviolet',
+                linestyle='dashed')
+    axs[0].plot(range_all, out_all, label='Full Record ODR Fit' +
+                f'\nSlope={odr_all.beta[0]:.3f}', color='black',
+                linestyle='dashed')
+    axs[0].set_xlabel('δ¹⁸O [‰ VSMOW]')
+    axs[0].set_ylabel('δ¹³C [‰ VPDB]')
+    axs[0].grid()
+    axs[0].legend(loc='upper center', bbox_to_anchor=(0.5, -0.1),
+                  fancybox=True, ncol=3)
+
+    # Bottom subplot: δ¹⁸O vs. Age BP
+    axs[1].scatter(maw_stad.age_BP, maw_stad.d18O, label='Stadial Data',
+                   color='royalblue', alpha=0.8)
+    axs[1].scatter(maw_intr.age_BP, maw_intr.d18O, label='Interstadial Data',
+                   color='gold', alpha=0.8)
+    axs[1].set_xlabel('Age BP')
+    axs[1].set_ylabel('δ¹⁸O [‰ VSMOW]')
+    axs[1].grid()
+
     plt.show()
 
 
 def main():
-    global maw_stad, maw_intr
+    global maw_norm
     records = load_data()
     maw = records['maw_3_clean']
     maw_norm = normalize_all(maw.copy())
@@ -173,7 +253,9 @@ def main():
     linreg_pprint(linreg_intr, 'Interstadial Periods')
     
     # Pretty plot summarizing this
-    stad_intr_slope(maw_stad, maw_intr, linreg_stad, linreg_intr, linreg_all)
+
+    plot_combined_clusters(maw, maw_stad, maw_intr, linreg_stad,
+                           linreg_intr, linreg_all)
     
     
 if __name__ == '__main__':

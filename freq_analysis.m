@@ -15,8 +15,8 @@ freq = logspace(log10(years(minf)),log10(years(maxf)),numfreq);
 freq = cast(freq, 'int32');
 
 figure(1)
-% cwt(maw_3_proxy.d18O, years(num_years))
-cwt(maw_3_proxy.d13C, years(num_years))
+cwt(maw_3_proxy.d18O, years(num_years))
+% cwt(maw_3_proxy.d13C, years(num_years))
 
 pbaspect([1.8 1 1])
 
