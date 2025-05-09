@@ -16,7 +16,7 @@ from scipy.interpolate import interp1d
 
 
 chdir('C:/Users/Aakas/Documents/Oster_lab/programs')
-from shared_funcs import combine_mawmluh, load_data, plot_psd
+from shared_funcs import combine_mawmluh, load_data, plot_psd, add_hiatus
 chdir('C:/Users/Aakas/Documents/Oster_lab/')
 
 
@@ -69,8 +69,9 @@ def plot_chunks(cts_chunks, record):
     Plots all the chunks to show their relative positions and lengths, along
     with mean frequency
     """
-    fig, axs = plt.subplots(2, 1, sharex=True)
-    
+    fig, axs = plt.subplots(3, 1, sharex=True)
+    record = add_hiatus(record, 100, varz=['d18O', 'd13C', 'growth_rate'])
+    plt.subplots_adjust(hspace=0)
     for value in cts_chunks:
         mean_freq = (value['age_BP'].iloc[-1] - value['age_BP'].iloc[0]) /\
             len(value)
@@ -79,13 +80,28 @@ def plot_chunks(cts_chunks, record):
         
     axs[0].grid()
     axs[1].grid()
-    axs[1].set_xlabel(f'Age BP; {len(cts_chunks)} Chunks')
-    axs[1].set_ylabel('d18O')
-    axs[0].set_ylabel('d13C')
-    axs[0].legend()
-    axs[1].plot(record['age_BP'], record['d18O'], color='lightgrey', alpha=0.4)
-    axs[0].plot(record['age_BP'], record['d13C'], color='lightgrey', alpha=0.4)
-    axs[0].set_title('High Resolution Regiemes')
+    axs[1].set_ylabel('δ¹⁸O\n[‰ VPDB]')
+    axs[0].set_ylabel('δ¹³C\n[‰ VPDB]')
+    axs[0].tick_params(bottom=False, labelbottom=False)
+    axs[1].tick_params(bottom=False, labelbottom=False, top=False)
+    axs[1].yaxis.tick_right()
+    axs[1].yaxis.set_label_position("right")
+    axs[1].legend(loc='upper left', fontsize='small', frameon=False)
+    axs[0].spines['bottom'].set_visible(False)
+    axs[1].spines[['top', 'bottom']].set_visible(False)
+    axs[1].plot(record['age_BP'], record['d18O'], color='lightgrey', alpha=0.5)
+    axs[0].plot(record['age_BP'], record['d13C'], color='lightgrey', alpha=0.5)
+    # axs[0].set_title('High Resolution Regimes')
+    
+    axs[2].plot(record['age_BP'],
+                record['growth_rate'], linestyle='dashed', color='darkblue',
+                alpha=0.8)
+    axs[2].set_xlabel(f'Age BP; {len(cts_chunks)} Chunks')
+    axs[2].set_ylabel('Growth Rate\n(mm/yr)')
+    axs[2].tick_params(top=False)
+    axs[2].spines['top'].set_visible(False)
+    axs[2].set_yticks((-0, 0.5, 1, 1.5))
+    axs[2].grid()
     
 
 def butter_highpass(cutoff, fs, order=5):

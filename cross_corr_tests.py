@@ -431,7 +431,7 @@ def clean_data_maw(arrs, period=25, filt_freq=1/500):
 
 
 def main():
-    global records
+    global records, prox_data
     records = load_data(filter_year='46000')
 
     period = 30

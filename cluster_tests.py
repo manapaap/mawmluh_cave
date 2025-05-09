@@ -136,7 +136,7 @@ def plot_combined_clusters(data, maw_stad, maw_intr, linreg_stad, linreg_intr, l
     axs[0].plot(range_all, out_all, label='Full Record Best Fit' +
                 f'\nR²={linreg_all.rvalue**2:.3f}', color='black',
                 linestyle='dashed')
-    axs[0].set_xlabel('δ¹⁸O [‰ VSMOW]')
+    axs[0].set_xlabel('δ¹⁸O [‰ VPDB]')
     axs[0].set_ylabel('δ¹³C [‰ VPDB]')
     axs[0].grid()
     axs[0].legend(loc='upper center', bbox_to_anchor=(0.5, -0.1),
@@ -148,7 +148,7 @@ def plot_combined_clusters(data, maw_stad, maw_intr, linreg_stad, linreg_intr, l
     axs[1].scatter(maw_intr.age_BP, maw_intr.d18O, label='Interstadial Data',
                    color='gold', alpha=0.8)
     axs[1].set_xlabel('Age BP')
-    axs[1].set_ylabel('δ¹⁸O [‰ VSMOW]')
+    axs[1].set_ylabel('δ¹⁸O [‰ VPDB]')
     axs[1].grid()
     # axs[1].legend(loc='best')
 
