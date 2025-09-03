@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 from os import chdir
 from itertools import cycle
 import scipy.stats as stats
+from plottable import Table, ColumnDefinition
+from matplotlib.colors import ListedColormap
 
 
 chdir('C:/Users/aakas/Documents/Oster_lab/programs')
@@ -70,9 +72,9 @@ def clean_data(arrs, period=25, filt_freq=1/500):
                        period=period, filt_freq=filt_freq)
     
     data = pd.DataFrame({'age_BP': new_time,
-                         'MAW': new_arr1,
+                         'MAW-3': new_arr1,
                          'NGRIP': new_arr2,
-                         'Wais': new_arr3,
+                         'WAIS': new_arr3,
                          'OMZ': new_arr4,
                          'Hulu': new_arr5,
                          'SOF': new_arr6})
@@ -298,8 +300,8 @@ def plot_chunk(data, title='', period=20, anal_len=128):
     
     plt.figure()
     for n, x in enumerate(data.columns[1:]):
-        if x=='MAW' or x=='NGRIP':
-            plt.plot(years, -data[x], color='black', linewidth=2.5, alpha=0.8)
+        if x=='MAW-3' or x=='NGRIP':
+            plt.plot(years, -data[x], color='black', linewidth=2, alpha=0.7)
             plt.plot(years, -data[x], label=x, linewidth=1, alpha=0.9)
         else:
             plt.plot(years, -data[x], label=x, alpha=0.8, 
@@ -309,6 +311,47 @@ def plot_chunk(data, title='', period=20, anal_len=128):
     plt.xlabel('Years From Dansgaard-Oeschger Event')
     plt.ylabel('Normalized Signal')
     plt.title(title)
+    
+    
+def plot_composite(data, period=20, anal_len=128):
+    """
+    Plots the composite data to show trends
+    
+    """
+    years = np.linspace(-anal_len * period / 2, anal_len * period / 2, 
+                        anal_len)
+    # Cycle through linestyles for clarity?
+    lines = ["--","-."]
+    linecycler = cycle(lines)
+    
+    color_carb = plt.cm.Set2(0.0625)
+    color_maw = plt.cm.Set2(0.1875)
+    color_hulu = plt.cm.Set2(0.3125)
+    color_arab = plt.cm.Set2(0.4375)
+    color_ngr = plt.cm.Set2(0.5625)
+    color_sof = plt.cm.Set2(0.6875)
+    color_braz = plt.cm.Set2(0.8125)
+    color_wais = plt.cm.Set2(0.95)
+    
+    plt.figure()
+    plt.plot(years, -data['MAW-3'], color='black',
+             linewidth=3)
+    plt.plot(years, -data['MAW-3'], color=color_maw, label='MAW-3',
+             linewidth=2.5)
+    plt.plot(years, -data['NGRIP'], color='black',
+             linewidth=3)
+    plt.plot(years, -data['NGRIP'], color=color_ngr, label='NGRIP',
+             linewidth=2.5)
+    
+    plt.plot(years, -data['WAIS'], color=color_wais, label='WAIS')
+    plt.plot(years, -data['OMZ'], color=color_arab, label='OMZ')
+    plt.plot(years, -data['Hulu'], color=color_hulu, label='Hulu')
+    plt.plot(years, -data['SOF'], color=color_sof, label='SOF')
+    
+    plt.grid(linestyle='dashed', alpha=0.7)
+    plt.legend()
+    plt.xlabel('Years From Dansgaard-Oeschger Event')
+    plt.ylabel('Normalized Signal')
 
 
 def composite(d_o_events, chunks, period):
@@ -430,8 +473,103 @@ def clean_data_maw(arrs, period=25, filt_freq=1/500):
     return data
 
 
+def lag_category(val, row_name=None, col_name=None):
+    COLOR_MAP = {
+        "self": 0,   # light blue
+        "sig": 1,    # red
+        "nonsig": 2  # green
+    }
+
+    # Define the colors in that order
+    cmap = ListedColormap(["#add8e6", "#ff9999", "#b3ffb3"])
+    if row_name == col_name:
+        return COLOR_MAP["self"]
+    try:
+        parts = str(val).replace(" ", "").split("±")
+        lag = float(parts[0])
+        error = float(parts[1])
+    except:
+        return COLOR_MAP["nonsig"]
+
+    if abs(lag) > error:
+        return COLOR_MAP["sig"]
+    elif abs(lag) == error == 0:
+        return COLOR_MAP['self']
+    else:
+        return COLOR_MAP["nonsig"]
+
+
+def parse_lag_error(cell_value):
+    """Parse a 'lag ± error' string into floats."""
+    try:
+        parts = str(cell_value).replace(" ", "").split("±")
+        lag = float(parts[0])
+        error = float(parts[1])
+        return lag, error
+    except Exception:
+        return None, None
+
+
+def plot_colored_table(df):
+    fig, ax = plt.subplots(figsize=(6, 2))
+    ax.axis('off')
+
+    # Create table data with row labels as first column
+    table_data = []
+    # Add header row with "Record" in top-left
+    header_row = ["Record"] + list(df.columns)
+    table_data.append(header_row)
+    
+    # Add data rows with index names
+    for i, row_name in enumerate(df.index):
+        table_data.append([row_name] + list(df.iloc[i, :]))
+
+    # Create the table
+    table = ax.table(
+        cellText=table_data,
+        cellLoc='center',
+        loc='center'
+    )
+
+    # Adjust font size and scaling
+    table.auto_set_font_size(False)
+    table.set_fontsize(9)
+    table.scale(1.2, 1.2)
+
+    # Apply colors
+    for i in range(len(table_data)):       # rows
+        for j in range(len(table_data[0])): # columns
+            cell = table[i, j]
+            
+            # Color all header cells (first row and first column)
+            if i == 0 and j == 0:
+                cell.set_facecolor("cornflowerblue")
+                cell.set_text_props(weight='bold', color='black')
+                continue
+            elif i == 0 or j == 0:
+                cell.set_facecolor("cornflowerblue")
+                cell.set_text_props(weight='bold', color='black')
+                continue
+            
+            # Parse and color data cells
+            cell_value = table_data[i][j]
+            lag, error = parse_lag_error(cell_value)
+
+            if lag is None or error is None:    
+                cell.set_facecolor("white")
+            elif lag == 0 and error == 0:
+                cell.set_facecolor("lightblue")  # diagonal elements
+            elif abs(lag) > error:
+                cell.set_facecolor("lightcoral")  # green = not significant
+            else:
+                cell.set_facecolor("palegreen")  # red = significant
+
+    plt.tight_layout()
+    plt.show()
+
+
 def main():
-    global records, prox_data
+    global records, prox_data, comp_mat_chunk, aggregate
     records = load_data(filter_year='46000')
 
     period = 30
@@ -473,7 +611,7 @@ def main():
     print(comp_mat_chunk)
     
     # Great! This seems to work. Let's try the red fit for maw    
-    plot_psd(prox_data['MAW'], nperseg=anal_len, period=period, nfft=256,
+    plot_psd(prox_data['MAW-3'], nperseg=anal_len, period=period, nfft=256,
              sig=0.95, cutoff=0.0025, name='Mawmluh Cave')
     
     # Let's test lag between just mawmluh stable isotopes
@@ -484,16 +622,21 @@ def main():
     chunks_maw = chunked_d_o(d_o_events, prox_maw, short_period, anal_len)
     aggregate_maw = composite(d_o_events, chunks_maw, short_period)
     plot_chunk(aggregate_maw, 'Composite D-O Event', short_period, anal_len)
-    comp_mat_agg_maw = lag_corr_mat(aggregate_maw, short_period)
-    comp_mat_maw, comp_maw_se = averaged_lag_mats(chunks_maw, short_period,
-                                                    sig=0.95)
-    comp_mat_maw = clean_lag_corr(comp_mat_maw, comp_maw_se)
+    # comp_mat_agg_maw = lag_corr_mat(aggregate_maw, short_period)
+    # comp_mat_maw, comp_maw_se = averaged_lag_mats(chunks_maw, short_period,
+    #                                                 sig=0.95)
+    # comp_mat_maw = clean_lag_corr(comp_mat_maw, comp_maw_se)
     
-    print('\nMawmluh Cave Isotopes')
-    print(comp_mat_maw)
-    print('\nComposite')
-    print(comp_mat_agg_maw)
+    #print('\nMawmluh Cave Isotopes')
+    #print(comp_mat_maw)
+    #print('\nComposite')
+    #print(comp_mat_agg_maw)
     
+    # Make a pretty table for comp_mat for publication
+    # reorder format
+    # comp_mat_rel = comp_mat_chunk[list(comp_mat_chunk.columns)[::-1]]
+    comp_mat_chunk.rename_axis('Record')
+    plot_colored_table(comp_mat_chunk)
     
 if __name__ == '__main__':
     main()

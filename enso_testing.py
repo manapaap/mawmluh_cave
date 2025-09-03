@@ -90,7 +90,9 @@ def plot_chunks(cts_chunks, record):
     axs[0].spines['bottom'].set_visible(False)
     axs[1].spines[['top', 'bottom']].set_visible(False)
     axs[1].plot(record['age_BP'], record['d18O'], color='lightgrey', alpha=0.5)
+    axs[1].invert_yaxis()
     axs[0].plot(record['age_BP'], record['d13C'], color='lightgrey', alpha=0.5)
+    axs[0].invert_yaxis()
     # axs[0].set_title('High Resolution Regimes')
     
     axs[2].plot(record['age_BP'],

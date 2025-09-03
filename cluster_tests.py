@@ -10,7 +10,7 @@ import pandas as pd
 from scipy.stats import linregress
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
-from scipy.odr import Model, Data, ODR
+from scipy.odr import *
 
 
 chdir('C:/Users/aakas/Documents/Oster_lab/')
@@ -34,7 +34,7 @@ def normalize_all(pd_df):
     return pd_df
 
 
-def elbow_plot(data, clus_range=(1, 10)):
+def elbow_plot(data, clus_range=(1, 5)):
     """
     creates an elbow plot to identify the optimal number of clusters
     """
@@ -47,9 +47,18 @@ def elbow_plot(data, clus_range=(1, 10)):
         
     plt.plot(range(*clus_range), inertia, marker='o')
     plt.xlabel('Number of Clusters')
-    plt.ylabel('Inertia?')
+    plt.ylabel('Inertia')
     plt.grid()
-    plt.title('Elbow')
+    plt.plot(2, 5075.259191025949, 
+         marker='o',          # Circular marker
+         markersize=20,       # Size of the marker
+         markerfacecolor='none', # No fill color for the marker
+         markeredgecolor='red', # Red edge color
+         markeredgewidth=2,   # Edge width
+         linestyle='None',    # No line connecting the points
+         dashes=[5, 2]        # Dash pattern for the marker edge (5pt on, 2pt off)
+        )
+    # plt.title('Elbow')
     plt.show()
 
 
@@ -101,7 +110,7 @@ def linreg_pprint(linreg_obj, title):
           f"Standard Error: {std_err:.4f}\n")
    
     
-def plot_combined_clusters(data, maw_stad, maw_intr, linreg_stad, linreg_intr, linreg_all):
+def plot_combined_clusters(data, maw_stad, maw_intr, linreg_stad, linreg_intr, linreg_all,):
     """
     Generates two subplots:
     - Top: Clustered δ¹⁸O-δ¹³C space with linear regression overlays for 
@@ -150,29 +159,11 @@ def plot_combined_clusters(data, maw_stad, maw_intr, linreg_stad, linreg_intr, l
     axs[1].set_xlabel('Age BP')
     axs[1].set_ylabel('δ¹⁸O [‰ VPDB]')
     axs[1].grid()
+    axs[1].invert_yaxis()
     # axs[1].legend(loc='best')
 
     plt.show()
 
-
-def orthogonal_least_squares(x, y):
-    """
-    Perform Orthogonal Distance Regression (ODR) to fit a line to the data.
-    """
-    # Define the linear model
-    def linear_func(params, x):
-        slope, intercept = params
-        return slope * x + intercept
-
-    # Create the data and model objects
-    data = Data(x, y)
-    model = Model(linear_func)
-    
-    # Set initial guess for slope and intercept
-    odr = ODR(data, model, beta0=[1.0, 0.0])
-    output = odr.run()
-    
-    return output
 
 
 def plot_combined_clusters_odr(data, maw_stad, maw_intr, odr_stad, odr_intr, odr_all):
@@ -187,8 +178,10 @@ def plot_combined_clusters_odr(data, maw_stad, maw_intr, odr_stad, odr_intr, odr
     plt.subplots_adjust(hspace=0.4)
 
     # Top subplot: δ¹⁸O-δ¹³C space with regression overlays
-    range_stad = np.linspace(maw_stad.d18O.min(), maw_stad.d18O.max(), num=100)
-    range_intr = np.linspace(maw_intr.d18O.min(), maw_intr.d18O.max(), num=100)
+    range_stad = np.linspace(maw_stad.d18O.min() + 0.75,
+                             maw_stad.d18O.max(), num=100)
+    range_intr = np.linspace(maw_intr.d18O.min() + 1,
+                             maw_intr.d18O.max() - 1.75, num=100)
     range_all = np.linspace(min(data.d18O), max(data.d18O), num=100)
 
     out_stad = odr_stad.beta[0] * range_stad + odr_stad.beta[1]
@@ -226,8 +219,30 @@ def plot_combined_clusters_odr(data, maw_stad, maw_intr, odr_stad, odr_intr, odr
     plt.show()
 
 
+def linear_func(beta, x):
+    slope, intercept = beta
+    return slope * x + intercept
+
+
+def orth_least_squares(x, y):
+    """
+    Uses scipy to define a function similar to linregress() but uses
+    orthogonal least squares instead
+    
+    returns linreg object
+    """
+    linear = Model(f)
+    data = Data(x, y)
+    model = Model(linear_func)
+    # Set initial guess for slope and intercept
+    odr = ODR(data, model, beta0=[0.5, 0.0])
+    output = odr.run()
+    return output
+
+
 def main():
     global maw_norm
+    np.random.seed(29)
     records = load_data()
     maw = records['maw_3_clean']
     maw_norm = normalize_all(maw.copy())
@@ -256,6 +271,16 @@ def main():
 
     plot_combined_clusters(maw, maw_stad, maw_intr, linreg_stad,
                            linreg_intr, linreg_all)
+    
+    
+    # Orthogonal Least squares?
+    # orth_all = orth_least_squares(maw.d18O, maw.d13C)
+    # orth_stad = orth_least_squares(maw_stad.d18O, maw_stad.d13C)
+    # orth_intr = orth_least_squares(maw_intr.d18O, maw_intr.d13C)
+    # Pretty plot summarizing this
+
+    # plot_combined_clusters_odr(maw, maw_stad, maw_intr, orth_stad,
+    #                        orth_intr, orth_all)
     
     
 if __name__ == '__main__':

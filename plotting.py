@@ -38,21 +38,19 @@ def proxy_stack(records, d_o_dates, age_data):
     min_age = records['maw_3_clean']['age_BP'].min()
     max_age = records['maw_3_clean']['age_BP'].max()
     
-    color1 = plt.cm.viridis(0.0)
-    color1_5 = plt.cm.viridis(0.65)
-    color2 = plt.cm.viridis(0.2)
-    color2_5 = plt.cm.viridis(0.95)
-    color3 = plt.cm.viridis(0.4)
-    color4 = plt.cm.viridis(0.6)
-    color5 = plt.cm.viridis(0.8)
-    color6 = plt.cm.viridis(.99)
-    color7 = plt.cm.viridis(0.7)
-    
+    color_carb = plt.cm.Set2(0.0625)
+    color_maw = plt.cm.Set2(0.1875)
+    color_hulu = plt.cm.Set2(0.3125)
+    color_arab = plt.cm.Set2(0.4375)
+    color_ngr = plt.cm.Set2(0.5625)
+    color_sof = plt.cm.Set2(0.6875)
+    color_braz = plt.cm.Set2(0.8125)
+    color_wais = plt.cm.Set2(0.95)
     # First, plot the records
     ax[0].plot(records['maw_3_clean'].age_BP, records['maw_3_clean'].d13C, 
-                   label='MAW-3 d18O', color=color1, alpha=0.8)
+                   label='MAW-3 d18O', color=color_carb, alpha=0.8)
     ax[0].plot(records['maw_jag'].age_BP, records['maw_jag'].d13C,
-               label='Jaglan 2021', color='limegreen', alpha=1, zorder=100)
+               label='Jaglan 2021', color='forestgreen', alpha=1, zorder=100)
     ax[0].set_ylim(-5, 4)
     ax[0].invert_yaxis()
     # ax[0].grid()
@@ -62,9 +60,9 @@ def proxy_stack(records, d_o_dates, age_data):
     ax[0].spines['bottom'].set_visible(False)
     
     ax[1].plot(records['maw_3_clean'].age_BP, records['maw_3_clean'].d18O,
-               label='MAW-3 d18O', color=color2, alpha=0.8)
+               label='MAW-3 d18O', color=color_maw, alpha=0.8)
     ax[1].plot(records['maw_jag'].age_BP, records['maw_jag'].d18O,
-               label='Jaglan 2021', color='springgreen', alpha=1, zorder=100)
+               label='Jaglan 2021', color='orangered', alpha=1, zorder=100)
     ax[1].set_ylim(-10, 0)
     ax[1].invert_yaxis()
     # ax[1].grid()
@@ -78,7 +76,7 @@ def proxy_stack(records, d_o_dates, age_data):
     ax[1].spines['bottom'].set_visible(False)
 
     ax[2].plot(records['hulu'].age_BP, records['hulu'].d18O,
-               label='NGRIP d18O', color=color3)
+               label='NGRIP d18O', color=color_hulu)
     # ax[2].grid()
     ax[2].invert_yaxis()
     ax[2].set_ylabel('Hulu δ¹⁸O ‰\n[‰ VPDB]')
@@ -88,7 +86,7 @@ def proxy_stack(records, d_o_dates, age_data):
     ax[2].spines['bottom'].set_visible(False)
     
     ax[5].plot(records['ngrip'].age_BP, records['ngrip'].d18O,
-               label='NGRIP d18O', color=color4)
+               label='NGRIP d18O', color=color_ngr)
     ax[5].set_ylim(-52, -33)
     # ax[5].grid()
     ax[5].set_ylabel('NGRIP δ¹⁸O\n[‰ VSMOW]')
@@ -101,7 +99,7 @@ def proxy_stack(records, d_o_dates, age_data):
     ax[5].spines['bottom'].set_visible(False)
     
     ax[6].plot(records['wais'].age_BP, records['wais'].d18O,
-               label='WAIS d18O', color=color5)
+               label='WAIS d18O', color=color_wais)
     # ax[6].grid()
     ax[6].set_ylabel('Wais δ¹⁸O\n[‰ VSMOW]')
     ax[6].spines[['top']].set_visible(False)
@@ -110,7 +108,7 @@ def proxy_stack(records, d_o_dates, age_data):
     ax[6].invert_yaxis()
     
     ax[3].plot(records['arabia'].age_BP, records['arabia'].refl,
-               label='WAIS d18O', color=color6)
+               label='WAIS d18O', color=color_arab)
     # ax[3].grid()
     ax[3].set_ylabel('Arabian Sed.\nReflectance')
     # ax[5].set_xlabel('Age (Years BP)')
@@ -123,7 +121,7 @@ def proxy_stack(records, d_o_dates, age_data):
     ax[3].spines['bottom'].set_visible(False)
     
     ax[4].plot(records['sofular'].age_BP, records['sofular'].d13C,
-               label='Sofular d13C', color=color7)
+               label='Sofular d13C', color=color_sof)
     # ax[4].grid()
     ax[4].set_ylabel('Sofular δ¹³C\n[‰ VPDB]')
     ax[4].set_xlabel('Age (Years BP)')
@@ -173,19 +171,18 @@ def proxy_stack_comb(records, d_o_dates, age_data, hein_dates):
     min_age = records['maw_comb']['age_BP'].min()
     max_age = records['maw_comb']['age_BP'].max()
     
-    color1 = plt.cm.viridis(0.0)
-    color1_5 = plt.cm.viridis(0.65)
-    color2 = plt.cm.viridis(0.2)
-    color2_5 = plt.cm.viridis(0.95)
-    color3 = plt.cm.viridis(0.4)
-    color4 = plt.cm.viridis(0.6)
-    color5 = plt.cm.viridis(0.8)
-    color6 = plt.cm.viridis(.99)
-    color7 = plt.cm.viridis(0.7)
+    color_carb = plt.cm.Set2(0.0625)
+    color_maw = plt.cm.Set2(0.1875)
+    color_hulu = plt.cm.Set2(0.3125)
+    color_arab = plt.cm.Set2(0.4375)
+    color_ngr = plt.cm.Set2(0.5625)
+    color_sof = plt.cm.Set2(0.6875)
+    color_braz = plt.cm.Set2(0.8125)
+    color_wais = plt.cm.Set2(0.95)
     
     # First, plot the records
     ax[0].plot(records['maw_comb'].age_BP, records['maw_comb'].d13C, 
-                   label='MAW-3 d13C', color=color1)
+                   label='MAW-3 d13C', color=color_carb)
     ax[0].set_ylim(-5, 4)
     ax[0].invert_yaxis()
     # ax[0].grid()
@@ -195,7 +192,7 @@ def proxy_stack_comb(records, d_o_dates, age_data, hein_dates):
     ax[0].spines['bottom'].set_visible(False)
     
     ax[1].plot(records['maw_comb'].age_BP, records['maw_comb'].d18O,
-               label='MAW-3 d18O', color=color2)
+               label='MAW-3 d18O', color=color_maw)
     ax[1].set_ylim(-8, -0.5)
     ax[1].invert_yaxis()
     # ax[1].grid()
@@ -209,7 +206,7 @@ def proxy_stack_comb(records, d_o_dates, age_data, hein_dates):
     ax[1].spines['bottom'].set_visible(False)
 
     ax[2].plot(records['hulu'].age_BP, records['hulu'].d18O,
-               label='NGRIP d18O', color=color3)
+               label='NGRIP d18O', color=color_hulu)
     # ax[2].grid()
     ax[2].invert_yaxis()
     ax[2].set_ylabel('Hulu δ¹⁸O\n[‰ VPDB]')
@@ -219,7 +216,7 @@ def proxy_stack_comb(records, d_o_dates, age_data, hein_dates):
     ax[2].spines['bottom'].set_visible(False)
     
     ax[5].plot(records['ngrip'].age_BP, records['ngrip'].d18O,
-               label='NGRIP d18O', color=color4)
+               label='NGRIP d18O', color=color_ngr)
     ax[5].set_ylim(-52, -33)
     # ax[3].grid()
     ax[5].set_ylabel('NGRIP δ¹⁸O\n[‰ VSMOW]')
@@ -232,7 +229,7 @@ def proxy_stack_comb(records, d_o_dates, age_data, hein_dates):
     ax[5].spines['bottom'].set_visible(False)
     
     ax[6].plot(records['wais'].age_BP, records['wais'].d18O,
-               label='WAIS d18O', color=color5)
+               label='WAIS d18O', color=color_wais)
     # ax[4].grid()
     ax[6].set_ylabel('Wais δ¹⁸O\n[‰ VSMOW]')
     ax[6].spines[['top']].set_visible(False)
@@ -243,7 +240,7 @@ def proxy_stack_comb(records, d_o_dates, age_data, hein_dates):
     ax[6].set_xlabel('Age (Years BP)')
     
     ax[3].plot(records['arabia'].age_BP, records['arabia'].refl,
-               label='WAIS d18O', color=color6) 
+               label='WAIS d18O', color=color_arab) 
     # ax[3].set_ylim(-52, -33)
     # ax[5].grid()
     ax[3].set_ylabel('Arabian Sed.\nReflectance')
@@ -256,7 +253,7 @@ def proxy_stack_comb(records, d_o_dates, age_data, hein_dates):
     ax[3].spines['bottom'].set_visible(False)
     
     ax[4].plot(records['sofular'].age_BP, records['sofular'].d13C,
-               label='Sofular d13C', color=color7)
+               label='Sofular d13C', color=color_sof)
     # ax[6].grid()
     ax[4].set_ylabel('Sofular δ¹³C\n[‰ VPDB]')
     ax[4].spines[['top']].set_visible(False)
@@ -270,6 +267,120 @@ def proxy_stack_comb(records, d_o_dates, age_data, hein_dates):
     for event, year in d_o_dates.items():
         # Hack different plot for #12 due to location on the edge
         if event == 12:
+            ax[0].text(year - 600, -2.5, f'{event}', c='red', alpha=0.9, 
+                       size='large')
+        else:
+            ax[0].text(year + 200, -2.5, f'{event}', c='red', alpha=0.9,
+                       size='large')
+        for axis in ax:
+            axis.vlines(year, -1000, 1000, colors='red', 
+                        linestyle='dashed', alpha=0.6)
+            
+    for event, year in hein_dates.items():
+        for axis in ax:
+            # Draw the vertical lines for Heinrich events
+            # axis.vlines(year, -1000, 1000, colors='orange', linestyle='dashdot', alpha=0.6)
+            axis.axvspan(year - 1000, year + 1000  , color='orange', alpha=0.2)
+        ax[1].text(year + 400, -4.5, f'H{event}', c='darkorange', alpha=1,
+                   size='large')
+            
+    plt.show()
+    
+    
+def proxy_stack_min(records, d_o_dates, age_data, hein_dates):
+    """
+    Plots the proxy stack containing Our d18O and d13C, Hulu d18O, NGRIP d18O,
+    WAIS d18O, arabian sea refl
+    
+    Labels all D-O events and Heinrich Events
+    
+    Puts scatter points showing error in dating
+    """
+    fig, ax = plt.subplots(5, 1, sharex=True)
+    plt.subplots_adjust(top=0.5)
+    fig.set_size_inches(10, 15)
+    # plt.tight_layout()
+    plt.subplots_adjust(hspace=0)
+    min_age = records['maw_comb']['age_BP'].min()
+    max_age = records['maw_comb']['age_BP'].max()
+    
+    color_carb = plt.cm.Set2(0.0625)
+    color_maw = plt.cm.Set2(0.1875)
+    color_hulu = plt.cm.Set2(0.3125)
+    color_arab = plt.cm.Set2(0.4375)
+    color_ngr = plt.cm.Set2(0.5625)
+    color_sof = plt.cm.Set2(0.6875)
+    color_braz = plt.cm.Set2(0.8125)
+    color_wais = plt.cm.Set2(0.95)
+    
+    # First, plot the records
+    ax[0].plot(records['maw_comb'].age_BP, records['maw_comb'].d13C, 
+                   label='MAW-3 d13C', color=color_carb)
+    ax[0].set_ylim(-5, 4)
+    ax[0].invert_yaxis()
+    # ax[0].grid()
+    ax[0].set_ylabel('MAW-3 δ¹³C\n[‰ VPDB]')
+    ax[0].set_yticks(np.arange(-4, 4, 2))
+    ax[0].set_xlim(min_age, max_age)
+    ax[0].spines['bottom'].set_visible(False)
+    
+    ax[1].plot(records['maw_comb'].age_BP, records['maw_comb'].d18O,
+               label='MAW-3 d18O', color=color_maw)
+    ax[1].set_ylim(-8, -0.5)
+    ax[1].invert_yaxis()
+    # ax[1].grid()
+    ax[1].set_ylabel('MAW-3 δ¹⁸O\n[‰ VPDB]')
+    ax[1].set_yticks(np.arange(-7, 0, 2))
+    ax[1].spines[['top']].set_visible(False)
+    ax[1].yaxis.tick_right()
+    ax[1].yaxis.set_label_position("right")
+    ax[1].set_ylim(-0.5, -5.5)
+    # ax[1].legend()
+    ax[1].spines['bottom'].set_visible(False)
+
+    ax[2].plot(records['hulu'].age_BP, records['hulu'].d18O,
+               label='NGRIP d18O', color=color_hulu)
+    # ax[2].grid()
+    ax[2].invert_yaxis()
+    ax[2].set_ylabel('Hulu δ¹⁸O\n[‰ VPDB]')
+    ax[2].set_yticks((-5, -7, -9))
+    ax[2].spines[['top']].set_visible(False)
+    ax[2].set_ylim(-5, -9)
+    ax[2].spines['bottom'].set_visible(False)
+    
+    ax[4].plot(records['ngrip'].age_BP, records['ngrip'].d18O,
+               label='NGRIP d18O', color=color_ngr)
+    ax[4].set_ylim(-52, -33)
+    # ax[3].grid()
+    ax[4].set_ylabel('NGRIP δ¹⁸O\n[‰ VSMOW]')
+    ax[4].set_xlabel('Age (Years BP)')
+    ax[4].set_yticks(np.arange(-48, -32, 6))
+    ax[4].spines[['top']].set_visible(False)
+    # ax[4].yaxis.tick_right()
+    # ax[4].yaxis.set_label_position("right")
+    ax[4].set_ylim(-50, -34)
+    ax[4].set_xlabel('Age (Years BP)')
+    ax[4].set_xlim(28351, 45000)
+    
+    ax[3].plot(records['arabia'].age_BP, records['arabia'].refl,
+               label='WAIS d18O', color=color_arab) 
+    # ax[3].set_ylim(-52, -33)
+    # ax[5].grid()
+    ax[3].set_ylabel('Arabian Sediment\nReflectance')
+    ax[3].spines[['top']].set_visible(False)
+    ax[3].yaxis.set_label_position("right")
+    ax[3].invert_yaxis()
+    ax[3].yaxis.tick_right()
+    ax[3].set_yticks((50, 75, 100))
+    ax[3].set_ylim(100, 50)
+    ax[3].spines['bottom'].set_visible(False)
+           
+    # Add vlines for d-o events
+    # d_o_dates.pop(3)
+    for event, year in d_o_dates.items():
+        # Hack different plot for #12 due to location on the edge
+        if event == 12:
+            continue
             ax[0].text(year - 600, -2.5, f'{event}', c='red', alpha=0.9, 
                        size='large')
         else:
@@ -304,37 +415,38 @@ def plot_map():
     loc_turk = [41.5, 32][::-1]
     loc_braz = [-10.1602, -40.8605][::-1]
     
-    num = 7
-    color2 = plt.cm.Set1(0 * 1 / num)
-    color3 = plt.cm.Set1(1 * 1 / num)
-    color4 = plt.cm.Set1(2 * 1 / num)
-    color5 = plt.cm.Set1(3 * 1 / num)
-    color6 = plt.cm.Set1(4 * 1 / num)
-    color7 = plt.cm.Set1(5 * 1 / num)
-    color8 = plt.cm.Set1(6 * 1 / num)
+    # num = 7
+    color_carb = plt.cm.Set2(0.0625)
+    color_maw = plt.cm.Set2(0.1875)
+    color_hulu = plt.cm.Set2(0.3125)
+    color_arab = plt.cm.Set2(0.4375)
+    color_ngr = plt.cm.Set2(0.5625)
+    color_sof = plt.cm.Set2(0.6875)
+    color_braz = plt.cm.Set2(0.8125)
+    color_wais = plt.cm.Set2(0.95)
     
     ax = plt.axes(projection=ccrs.PlateCarree())
     ax.coastlines(alpha=0.9, linestyle='dashdot', linewidth=0.4)
     fig = plt.gcf()
     fig.set_size_inches(10, 3.5)
     
-    size = 90
+    size = 100
     border_col = 'black'
     width = 0.5
     marker = '*'
-    ax.scatter(*loc_mawmluh, label='Mawmluh Cave Speleothem', color=color2, s=size,
+    ax.scatter(*loc_mawmluh, label='Mawmluh Cave Speleothem', color=color_maw, s=size,
                marker=marker, edgecolor=border_col, linewidths=width, zorder=10)
-    ax.scatter(*loc_hulu, label='Hulu Cave Speleothem', color=color3, s=size,
+    ax.scatter(*loc_hulu, label='Hulu Cave Speleothem', color=color_hulu, s=size,
                marker=marker, edgecolor=border_col, linewidths=width, zorder=10)
-    ax.scatter(*loc_ngrip, label='NGRIP Ice Core', color=color4, s=size,
+    ax.scatter(*loc_arab, label='Arabian Sea Sediment Core', color=color_arab, s=size,
                marker=marker, edgecolor=border_col, linewidths=width, zorder=10)
-    ax.scatter(*loc_wais, label='WAIS Divide Ice Core', color=color5, s=size,
+    ax.scatter(*loc_turk, label='Sofular Cave Speleothem', color=color_sof, s=size,
                marker=marker, edgecolor=border_col, linewidths=width, zorder=10)
-    ax.scatter(*loc_arab, label='Arabian Sea Sediment Core', color=color6, s=size,
+    ax.scatter(*loc_ngrip, label='NGRIP Ice Core', color=color_ngr, s=size,
                marker=marker, edgecolor=border_col, linewidths=width, zorder=10)
-    ax.scatter(*loc_turk, label='Sofular Cave Speleothem', color=color7, s=size,
+    ax.scatter(*loc_wais, label='WAIS Divide Ice Core', color=color_wais, s=size,
                marker=marker, edgecolor=border_col, linewidths=width, zorder=10)
-    ax.scatter(*loc_braz, label='NE Brazil Speleothems', color=color8, s=size,
+    ax.scatter(*loc_braz, label='NE Brazil Speleothems', color=color_braz, s=size,
                marker=marker, edgecolor=border_col, linewidths=width, zorder=10)
     ax.stock_img()
     # Terrain features
@@ -358,7 +470,7 @@ def plot_map():
     plt.show()
   
 
-def combined_figure(records, d_o_dates, age_data, hein_dates):
+def combined_figure(records, d_o_dates, hein_dates):
     fig = plt.figure(figsize=(10, 18))
     gs = GridSpec(2, 1, height_ratios=[8, 2], hspace=0.15, figure=fig)
 
@@ -381,7 +493,7 @@ def combined_figure(records, d_o_dates, age_data, hein_dates):
     color3   = cmap(0.4)
     color4   = cmap(0.6)
     color5   = cmap(0.8)
-    color6   = cmap(.99)
+    color6   = cmap(.90)
     color7   = cmap(0.7)
 
     min_age = records['maw_comb']['age_BP'].min()
@@ -539,9 +651,9 @@ def combined_figure(records, d_o_dates, age_data, hein_dates):
                            labelspacing=1.1)
 
     # panel labels (flush left in figure coords)
-    fig.text(0.01, 0.98, '(A)', fontsize=16,
+    fig.text(0.01, 0.98, '(a)', fontsize=16,
              fontweight='bold', va='top')
-    fig.text(0.01, 0.46, '(B)', fontsize=16,
+    fig.text(0.01, 0.46, '(b)', fontsize=16,
              fontweight='bold', va='top')
 
     fig.align_ylabels(axs)
@@ -628,11 +740,14 @@ def plot_heinrich_trapz(records, hein_date, trapz=True):
     trapz_iso_hulu = (-8.356, -6.94, -5.93, -7.71)
     
     # Same colors as proxy stack
-    color_maw = plt.cm.viridis(0.0)
-    color_hulu = plt.cm.viridis(0.2)
-    color_ng = plt.cm.viridis(0.4)
-    color_braz = plt.cm.viridis(0.3)
-    color_wais = plt.cm.viridis(0.8)
+    color_carb = plt.cm.Set2(0.0625)
+    color_maw = plt.cm.Set2(0.1875)
+    color_hulu = plt.cm.Set2(0.3125)
+    color_arab = plt.cm.Set2(0.4375)
+    color_ngr = plt.cm.Set2(0.5625)
+    color_sof = plt.cm.Set2(0.6875)
+    color_braz = plt.cm.Set2(0.8125)
+    color_wais = plt.cm.Set2(0.95)
     
     axs[0].set_xlim((hein_date - 1500, hein_date + 1500))
     
@@ -649,7 +764,7 @@ def plot_heinrich_trapz(records, hein_date, trapz=True):
     axs[0].invert_yaxis()
     
     axs[ngrip].plot(records['ngrip'].age_BP, records['ngrip'].d18O, 
-                color=color_ng)
+                color=color_ngr)
     if False:
         axs[ngrip].plot(trapz_age_ng, trapz_iso_ng, color='black', linestyle='dashed',
                     zorder=2, alpha=0.6)
@@ -879,7 +994,7 @@ def plot_monsoons(era5_seasonal, era5_clm, pres=950, every=10,
     seasons = ['DJF', 'JJA'][::-1]
     titles = [f'Winter {pres} hPa Winds', f'Summer {pres} hPa Winds'][::-1]
     titles2 = [f'Winter {name}', f'Summer {name}'][::-1]
-    labels = ['A', 'B', 'C', 'D']
+    labels = ['a', 'b', 'c', 'd']
 
     # Storage for handles to use for shared colorbars
     strm_handles = []
@@ -1026,14 +1141,15 @@ def main():
     
     # Plot out nonsense here
     proxy_stack(records, d_o_events, age_data)
-    plot_map()
+    plot_map()    
     
-    # COmbined plot?
-    # combined_figure(records, d_o_events, age_data, hein_dates)
+    # COmbined plot?- broken as hell
+    # combined_figure(records, d_o_events, hein_dates)
     
     # Add hiatuses
     records['maw_comb'] = add_hiatus(records['maw_comb'], 100)
     proxy_stack_comb(records, d_o_events, age_data, hein_dates)
+    proxy_stack_min(records, d_o_events, age_data, hein_dates)
     
     # Plot heinrich events
     # plot_heinrich(records['maw_3_clean'], hein_dates)
