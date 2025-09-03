@@ -22,6 +22,9 @@ This file calculates the wavelet scalogram for the MAW-3 record, showing the 149
 
 This file contains the main plotting functions that I use for the paper. The record stacks and maps in particular. 
 
-All other files are deprecated and haven't been used for a while. I am retaining them here for completeness. 
+### shared_funcs.py
 
+This file contains functions shared between files, most importantly being those to load data for a given script. 
+
+All other files are deprecated and haven't been used for a while. I am retaining them here for completeness. 
 
