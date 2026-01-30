@@ -98,8 +98,8 @@ def load_data(filter_year='46000'):
     hulu_h82 = pd.read_excel('external_excel_sheets/hulu_unpublished.xlsx', 
                              skiprows=1, usecols='B,F', 
                              names=['age_BP', 'd18O'], sheet_name='H82')
-    hulu_data = pd.concat([hulu_msl, hulu_msd,
-                           hulu_h82]).sort_values(by='age_BP')
+    hulu_data = pd.concat([hulu_msl, hulu_msd, hulu_h82]).\
+        sort_values(by='age_BP')
     # Remove NaN values
     hulu_data = hulu_data[~hulu_data['d18O'].isnull()].reset_index()
     
@@ -108,20 +108,19 @@ def load_data(filter_year='46000'):
                          skiprows=111,
                          names=['depth_m', 'age_2000', 'refl'], sep='\t')
     arabia['age_BP'] = arabia['age_2000'] - 50
-
-    # maw_3_clean = maw_3_proxy.query(f'age_BP <= {filter_year}')
-    # maw_3_clean = maw_3_clean.dropna(subset=['age_BP', 'd18O', 'd13C'])
-    
     
     # Let's insert the new MAW-3 data here- need to combine d18O and d13C sheets
     maw_3_d18O = pd.read_excel('internal_excel_sheets/filled_seb_runs/' +
-                              'MAW-3_am11_copra.xlsx', usecols='B:C,K', 
-                              names=['top_dist_mm', 'age_BP', 'd18O'], 
-                              sheet_name='d18O final',
+                              'MAW-3_am12_COPRA_Jan26_NEWEST.xlsx',
+                              usecols='B:C,F,K', 
+                              names=['top_dist_mm', 'age_BP', 
+                                     'growth_rate','d18O'], 
+                              sheet_name='d18O final am11',
                               skiprows=68)
     maw_3_d13C = pd.read_excel('internal_excel_sheets/filled_seb_runs/' +
-                              'MAW-3_am11_copra.xlsx', usecols='B:C,F,K', 
-                              names=['top_dist_mm', 'age_BP', 'growth_rate','d13C'], 
+                              'MAW-3_am12_COPRA_Jan26_NEWEST.xlsx',
+                              usecols='B:C,K', 
+                              names=['top_dist_mm', 'age_BP', 'd13C'], 
                               sheet_name='d13C final am11',
                               skiprows=68)
     maw_3_clean = maw_3_d18O.merge(maw_3_d13C, on='age_BP', how='left')

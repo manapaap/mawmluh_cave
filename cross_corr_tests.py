@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 from os import chdir
 from itertools import cycle
 import scipy.stats as stats
-from plottable import Table, ColumnDefinition
 from matplotlib.colors import ListedColormap
 
 
@@ -34,14 +33,14 @@ def smooth_data(time, data, new_time, period=25, filt_freq=1/500):
     # Interpolate to standard sampling period
     func_data = interp1d(time, data)
     new_data = func_data(new_time)
-    # Low pass filter
-    new_data = butter_lowpass_filter(new_data, filt_freq, 1/period, 5)
+    # linear detrend
+    new_data = signal.detrend(new_data)
     # normalize
     mean = np.mean(new_data)
     std = np.std(new_data)
     new_data = (new_data - mean) / std
-    # linear detrend
-    new_data = signal.detrend(new_data)
+    # Low pass filter
+    new_data = butter_lowpass_filter(new_data, filt_freq, 1/period, 5)
     
     return new_data
 
@@ -72,7 +71,7 @@ def clean_data(arrs, period=25, filt_freq=1/500):
                        period=period, filt_freq=filt_freq)
     
     data = pd.DataFrame({'age_BP': new_time,
-                         'MAW-3': new_arr1,
+                         'MAW': new_arr1,
                          'NGRIP': new_arr2,
                          'WAIS': new_arr3,
                          'OMZ': new_arr4,
@@ -334,9 +333,9 @@ def plot_composite(data, period=20, anal_len=128):
     color_wais = plt.cm.Set2(0.95)
     
     plt.figure()
-    plt.plot(years, -data['MAW-3'], color='black',
+    plt.plot(years, -data['MAW'], color='black',
              linewidth=3)
-    plt.plot(years, -data['MAW-3'], color=color_maw, label='MAW-3',
+    plt.plot(years, -data['MAW'], color=color_maw, label='MAW',
              linewidth=2.5)
     plt.plot(years, -data['NGRIP'], color='black',
              linewidth=3)
@@ -404,7 +403,7 @@ def lag_corr_mat(data, period):
     for loc in comp_mat.columns:
         for loc2 in comp_mat.columns:
             comp_mat[loc][loc2] = lag_finder(data[loc], data[loc2],
-                                                  period=period, plot=False)
+                                             period=period, plot=False)
     return comp_mat
 
 
@@ -423,6 +422,7 @@ def averaged_lag_mats(chunks, period, sig=0.95):
     stacked_arr = np.stack([mat.to_numpy(dtype=float) for mat in lag_dict.values()])
     mean_lag = stacked_arr.mean(axis=0)
     std_lag = stacked_arr.std(axis=0)
+    # print(stats.t.ppf((1 - (1 - sig)/2), stacked_arr.shape[0]))
     se_lag = stats.t.ppf((1 - (1 - sig)/2), stacked_arr.shape[0]) * std_lag /\
         np.sqrt(stacked_arr.shape[0] - 1)
     # Get these back into pandas dataframes
@@ -566,40 +566,238 @@ def plot_colored_table(df):
 
     plt.tight_layout()
     plt.show()
+    
+    
+def plot_diag_table(df):
+    df = df[::-1]
+    fig, ax = plt.subplots(figsize=(6, 2))
+    ax.axis('off')
 
+    # Create table data with row labels as first column
+    table_data = []
+    # Add header row with "Record" in top-left
+    header_row = ["Record"] + list(df.columns)
+    table_data.append(header_row)
+    
+    # Add data rows with index names
+    for i, row_name in enumerate(df.index):
+        table_data.append([row_name] + list(df.iloc[i, :len(df) - i]))
+    # reformat the table to make square
+    max_len = len(table_data) - 1
+    # remove last column
+    table_data[0].pop()
+    table_data[1].pop()
+    # remove last row
+    table_data.pop()
+    for n, row in enumerate(table_data):
+        row_len = len(row)
+        if row_len < max_len:
+            table_data[n] += [np.nan] * (max_len - row_len) 
+        for m, entry in enumerate(row):
+            if entry == '0 ± 0':
+                table_data[n][m] = None
+
+    # Create the table
+    table = ax.table(
+        cellText=table_data,
+        cellLoc='center',
+        loc='center'
+    )
+
+    # Adjust font size and scaling
+    table.auto_set_font_size(False)
+    table.set_fontsize(9)
+    table.scale(1.2, 1.2)
+
+    # Apply colors
+    for i in range(len(table_data)):       # rows
+        for j in range(len(table_data[0])): # columns
+            cell = table[i, j]
+            
+            # Color all header cells (first row and first column)
+            if i == 0 and j == 0:
+                cell.set_facecolor("white")
+                cell.set_text_props(weight='bold', color='black')
+                cell.set_linewidth(1.5)
+                continue
+            elif i == 0 or j == 0:
+                cell.set_facecolor("white")
+                cell.set_text_props(weight='bold', color='black')
+                cell.set_linewidth(1.5)
+                continue
+            
+            # Parse and color data cells
+            cell_value = table_data[i][j]
+            lag, error = parse_lag_error(cell_value)
+
+            if lag is None or error is None:    
+                cell.set_facecolor("white")
+                cell.set_text_props(color='white')
+                cell.set_linewidth(1.5)
+            elif abs(lag) > error and lag < 0:
+                cell.set_facecolor("violet")  # purple = lags
+                cell.set_linewidth(1.5)
+            elif abs(lag) > error:
+                cell.set_facecolor("lightcoral")  # tomato = leads 
+                cell.set_linewidth(1.5)
+            else:
+                cell.set_facecolor("khaki")  # = no lag
+                cell.set_linewidth(1.5)
+                #cell.get_text().set_text(str(int(abs(lag))) + ' ± ' +\
+                #                         str(int(error)))
+
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_table_legend():
+    """
+    Legend for table to be edited together manually
+    """
+    fig, ax = plt.subplots(figsize=(4, 0.25))
+    ax.axis('off')
+    names = [['Purple: Row', 'Khaki: Row and', 'Red: Row'],
+              ['Leads Column', 'Column Synchronized', 'Lags Column']]
+    table = ax.table(cellText=names,
+                     cellLoc='center',
+                     loc='center')
+    table.auto_set_font_size(False)
+    table.set_fontsize(7)
+    table.scale(1.2, 1.2)
+    
+    table[0, 0].set_facecolor('violet')
+    table[1, 0].set_facecolor('violet')
+    table[0, 1].set_facecolor('khaki')
+    table[1, 1].set_facecolor('khaki')
+    table[0, 2].set_facecolor('lightcoral')
+    table[1, 2].set_facecolor('lightcoral')
+    
+
+
+def proxy_stack_comb(prox_data):
+    """
+    Plots the proxy stack containing Our d18O and d13C, Hulu d18O, NGRIP d18O,
+    WAIS d18O, arabian sea refl, sofular d13C but instead for the detrended
+    and deseasonalized records
+    """
+    fig, ax = plt.subplots(6, 1, sharex=True)
+    plt.subplots_adjust(top=0.5)
+    fig.set_size_inches(10, 15)
+    # plt.tight_layout()
+    plt.subplots_adjust(hspace=0)
+    min_age = records['maw_comb']['age_BP'].min()
+    max_age = records['maw_comb']['age_BP'].max()
+    
+    color_carb = plt.cm.Set2(0.0625)
+    color_maw = plt.cm.Set2(0.1875)
+    color_hulu = plt.cm.Set2(0.3125)
+    color_arab = plt.cm.Set2(0.4375)
+    color_ngr = plt.cm.Set2(0.5625)
+    color_sof = plt.cm.Set2(0.6875)
+    color_wais = plt.cm.Set2(0.95)
+    
+    # First, plot the records
+    
+    ax[0].plot(prox_data['age_BP'], prox_data['MAW'], color=color_maw)
+    ax[0].invert_yaxis()
+    # ax[1].grid()
+    ax[0].set_ylabel('Mawmluh δ¹⁸O')
+    ax[0].yaxis.tick_right()
+    ax[0].yaxis.set_label_position("right")
+    # ax[1].legend()
+    ax[0].spines['bottom'].set_visible(False)
+    ax[0].legend(loc='lower right', ncol=2, fontsize='x-small')
+    ax[0].text(29000, -1, 'a)')
+
+    ax[1].plot(prox_data.age_BP, prox_data['Hulu'],
+               color=color_hulu)
+    # ax[2].grid()
+    ax[1].invert_yaxis()
+    ax[1].set_ylabel('Hulu δ¹⁸O')
+    ax[1].spines[['top']].set_visible(False)
+    ax[1].spines['bottom'].set_visible(False)
+    ax[1].text(29000, 1.5, 'b)')
+    
+    ax[4].plot(prox_data.age_BP, prox_data['NGRIP'],
+               label='NGRIP d18O', color=color_ngr)
+    # ax[3].grid()
+    ax[4].set_ylabel('NGRIP δ¹⁸O')
+    ax[4].set_xlabel('Age (Years BP)')
+    ax[4].spines[['top']].set_visible(False)
+    ax[4].yaxis.tick_right()
+    ax[4].yaxis.set_label_position("right")
+    ax[4].spines['bottom'].set_visible(False)
+    ax[4].invert_yaxis()
+    ax[4].text(29000, -1, 'e)')
+    ax[4].set_yticks([2, 0, -2])
+    
+    ax[5].plot(prox_data.age_BP, prox_data['WAIS'],
+               label='WAIS d18O', color=color_wais)
+    # ax[4].grid()
+    ax[5].set_ylabel('Wais δ¹⁸O')
+    ax[5].spines[['top']].set_visible(False)
+    ax[5].invert_yaxis()
+    ax[5].set_xlabel('Age (Years BP)')
+    ax[5].text(29000, -1, 'f)')
+    
+    ax[2].plot(prox_data.age_BP, prox_data['OMZ'],
+               color=color_arab) 
+
+    ax[2].set_ylabel('Arabian Sed. Refl.')
+    ax[2].spines[['top']].set_visible(False)
+    ax[2].yaxis.set_label_position("right")
+    ax[2].invert_yaxis()
+    ax[2].yaxis.tick_right()
+    ax[2].spines['bottom'].set_visible(False)
+    ax[2].text(29000, -0.5, 'c)')
+    
+    ax[3].plot(prox_data.age_BP, prox_data['SOF'],
+               label='Sofular d13C', color=color_sof)
+    # ax[6].grid()
+    ax[3].set_ylabel('Sofular δ¹³C')
+    ax[3].spines[['top']].set_visible(False)
+    ax[3].yaxis.set_label_position("left")
+    ax[3].invert_yaxis()
+    ax[3].spines['bottom'].set_visible(False)
+    ax[3].text(29000, 1, 'd)')
+        
 
 def main():
-    global records, prox_data, comp_mat_chunk, aggregate
+    global records, prox_data, chunks, comp_mat_chunk
     records = load_data(filter_year='46000')
 
     period = 30
-    filt_freq = 1/100
+    filt_freq = 1/200
     min_ice_date = 27000
-    anal_len = 128
-    max_ice_date = records['ngrip']['age_BP'].max()
+    anal_len = 128 
+    max_ice_date = records['maw_3_clean']['age_BP'].max()
 
     _, d_o_events, _ = d_o_dates(min_date=min_ice_date, 
                                  max_date=max_ice_date)
     
     # Combine the Mawmluh cave records
-    records['maw_comb'] = combine_mawmluh(records, cutoff=39000)
+    records['maw_comb'] = combine_mawmluh(records, cutoff=39500)
     
     prox_data = clean_data([records['maw_comb'], records['ngrip'],
                                 records['wais'], records['arabia'],
                                 records['hulu'], records['sofular']],
                     period=period, filt_freq=filt_freq)
+    proxy_stack_comb(prox_data)
+    # playing with order
+    # prox_data = prox_data[['age_BP', 'NGRIP', 'SOF', 'Hulu', 'MAW', 'OMZ', 'WAIS']]
 
     # Let's now do our chunk-based analysis of D-O events
-    chunks = chunked_d_o(d_o_events, prox_data, period)
+    chunks = chunked_d_o(d_o_events, prox_data, period, anal_len=anal_len)
     # Use this to create a composite, and plot
     
     aggregate = composite(d_o_events, chunks, period)
-    plot_chunk(aggregate, 'Composite D-O Event', period)
+    # plot_chunk(aggregate, 'Composite D-O Event', period)
+    plot_composite(aggregate, anal_len=anal_len, period=period)
     
     # Lag-correlation matrices
     comp_mat_full = lag_corr_mat(prox_data, period)
     comp_mat_agg = lag_corr_mat(aggregate, period)
-    comp_mat_chunk, comp_mat_se = averaged_lag_mats(chunks, period, sig=0.99)
+    comp_mat_chunk, comp_mat_se = averaged_lag_mats(chunks, period, sig=0.95)
     # Clean this up and print
     comp_mat_chunk = clean_lag_corr(comp_mat_chunk, comp_mat_se)
     
@@ -611,7 +809,7 @@ def main():
     print(comp_mat_chunk)
     
     # Great! This seems to work. Let's try the red fit for maw    
-    plot_psd(prox_data['MAW-3'], nperseg=anal_len, period=period, nfft=256,
+    plot_psd(prox_data['MAW'], nperseg=anal_len, period=period, nfft=256,
              sig=0.95, cutoff=0.0025, name='Mawmluh Cave')
     
     # Let's test lag between just mawmluh stable isotopes
@@ -637,6 +835,12 @@ def main():
     # comp_mat_rel = comp_mat_chunk[list(comp_mat_chunk.columns)[::-1]]
     comp_mat_chunk.rename_axis('Record')
     plot_colored_table(comp_mat_chunk)
+    plot_diag_table(comp_mat_chunk)
+    plot_table_legend()
+    
+    # order changes
+    reorder = prox_data[['age_BP', 'NGRIP', 'SOF', 
+                         'Hulu', 'MAW', 'OMZ', 'WAIS']]
     
 if __name__ == '__main__':
     main()

@@ -86,7 +86,7 @@ def plot_chunks(cts_chunks, record):
     axs[1].tick_params(bottom=False, labelbottom=False, top=False)
     axs[1].yaxis.tick_right()
     axs[1].yaxis.set_label_position("right")
-    axs[1].legend(loc='upper left', fontsize='small', frameon=False)
+    axs[1].legend(loc='upper left', fontsize='x-small', frameon=False)
     axs[0].spines['bottom'].set_visible(False)
     axs[1].spines[['top', 'bottom']].set_visible(False)
     axs[1].plot(record['age_BP'], record['d18O'], color='lightgrey', alpha=0.5)
